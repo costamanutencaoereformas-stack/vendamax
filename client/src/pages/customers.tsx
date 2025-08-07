@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus, Search, Edit, Trash2, User, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import CustomerForm from "@/components/forms/customer-form";
@@ -189,6 +189,9 @@ export default function Customers() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Cliente</DialogTitle>
+            <DialogDescription>
+              Edite as informações do cliente nos campos abaixo.
+            </DialogDescription>
           </DialogHeader>
           {editingCustomer && (
             <CustomerForm

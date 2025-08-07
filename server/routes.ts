@@ -244,7 +244,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/quotes", async (req, res) => {
     try {
-      const quoteData = insertQuoteSchema.parse(req.body);
+      // Convert validUntil string to Date if needed
+      const bodyData = { ...req.body };
+      if (bodyData.validUntil && typeof bodyData.validUntil === 'string') {
+        bodyData.validUntil = new Date(bodyData.validUntil);
+      }
+      
+      const quoteData = insertQuoteSchema.parse(bodyData);
       const quote = await storage.createQuote(quoteData);
       res.status(201).json(quote);
     } catch (error: any) {

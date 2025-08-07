@@ -43,8 +43,8 @@ function NavLink({ href, icon: Icon, children, isActive }: {
 }) {
   return (
     <Link href={href}>
-      <a className={cn(
-        "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+      <div className={cn(
+        "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
         isActive
           ? "bg-blue-50 text-blue-700"
           : "text-gray-700 hover:bg-gray-100"
@@ -54,7 +54,7 @@ function NavLink({ href, icon: Icon, children, isActive }: {
           isActive ? "text-blue-500" : "text-gray-400"
         )} />
         {children}
-      </a>
+      </div>
     </Link>
   );
 }
