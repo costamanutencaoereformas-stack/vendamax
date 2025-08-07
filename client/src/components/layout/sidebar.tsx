@@ -10,9 +10,13 @@ import {
   BarChart3, 
   FileInput,
   User,
-  LogOut
+  LogOut,
+  Menu,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -86,11 +90,139 @@ function NavSection({ title, items }: {
   );
 }
 
-export default function Sidebar() {
+function MobileNavSection({ title, items, onItemClick }: {
+  title: string;
+  items: Array<{ name: string; href: string; icon: React.ComponentType<any> }>;
+  onItemClick: () => void;
+}) {
   const [location] = useLocation();
 
   return (
-    <div className="w-64 bg-white shadow-sm border-r border-gray-200 fixed h-full z-10">
+    <div className="pt-4">
+      <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        {title}
+      </p>
+      <div className="mt-2 space-y-1">
+        {items.map((item) => (
+          <Link key={item.name} href={item.href}>
+            <div
+              className={cn(
+                "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
+                location === item.href
+                  ? "bg-blue-50 text-blue-700"
+                  : "text-gray-700 hover:bg-gray-100"
+              )}
+              onClick={onItemClick}
+            >
+              <item.icon className={cn(
+                "mr-3 h-5 w-5",
+                location === item.href ? "text-blue-500" : "text-gray-400"
+              )} />
+              {item.name}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function Sidebar() {
+  const [location] = useLocation();
+  const isMobile = useIsMobile();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md lg:hidden"
+        >
+          <Menu className="h-6 w-6 text-gray-600" />
+        </button>
+
+        {/* Mobile overlay */}
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <BarChart3 className="text-white text-sm" />
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-semibold text-gray-900">VendaMax</h1>
+                    <p className="text-xs text-gray-500">Sistema de Gestão</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <nav className="mt-6 pb-20 overflow-y-auto">
+                <div className="px-3">
+                  <div className="space-y-1">
+                    {navigation.map((item) => (
+                      <Link key={item.name} href={item.href}>
+                        <div
+                          className={cn(
+                            "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
+                            location === item.href
+                              ? "bg-blue-50 text-blue-700"
+                              : "text-gray-700 hover:bg-gray-100"
+                          )}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <item.icon className={cn(
+                            "mr-3 h-5 w-5",
+                            location === item.href ? "text-blue-500" : "text-gray-400"
+                          )} />
+                          {item.name}
+                        </div>
+                      </Link>
+                    ))}
+                    
+                    <MobileNavSection title="Cadastros" items={cadastros} onItemClick={() => setIsMobileMenuOpen(false)} />
+                    <MobileNavSection title="Operações" items={operacoes} onItemClick={() => setIsMobileMenuOpen(false)} />
+                    <MobileNavSection title="Análise" items={analise} onItemClick={() => setIsMobileMenuOpen(false)} />
+                  </div>
+                </div>
+              </nav>
+              
+              {/* Mobile User Section */}
+              <div className="absolute bottom-0 w-full p-4 border-t border-gray-200 bg-white">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                    <User className="text-gray-600 text-sm" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">Administrador</p>
+                    <p className="text-xs text-gray-500">admin</p>
+                  </div>
+                  <button className="text-gray-400 hover:text-gray-600">
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <div className="w-64 bg-white shadow-sm border-r border-gray-200 fixed h-full z-10 hidden lg:block">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
