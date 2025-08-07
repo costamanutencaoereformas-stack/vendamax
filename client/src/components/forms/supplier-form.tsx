@@ -11,6 +11,8 @@ import { queryClient } from "@/lib/queryClient";
 import { insertSupplierSchema } from "@shared/schema";
 import { validateCNPJ } from "@/lib/validators";
 import type { Supplier } from "@shared/schema";
+import { Search, Loader2 } from "lucide-react";
+import { useState } from "react";
 
 const supplierFormSchema = insertSupplierSchema.extend({
   cnpj: z.string().min(1, "CNPJ é obrigatório").refine(validateCNPJ, "CNPJ inválido"),
@@ -24,7 +26,7 @@ interface SupplierFormProps {
 
 export default function SupplierForm({ supplier, onSuccess }: SupplierFormProps) {
   const { toast } = useToast();
-  
+
   const form = useForm<z.infer<typeof supplierFormSchema>>({
     resolver: zodResolver(supplierFormSchema),
     defaultValues: {
@@ -95,6 +97,66 @@ export default function SupplierForm({ supplier, onSuccess }: SupplierFormProps)
     },
   });
 
+  const searchCEPMutation = useMutation({
+    mutationFn: async (cep: string) => {
+      // Remove formatting from CEP
+      const cleanCEP = cep.replace(/[^\d]/g, '');
+
+      // Use ViaCEP API (free Brazilian CEP service)
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
+      if (!response.ok) {
+        throw new Error("CEP não encontrado ou API temporariamente indisponível");
+      }
+      const data = await response.json();
+      if (data.erro) {
+        throw new Error("CEP não encontrado");
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      // Fill form with API data
+      form.setValue("address", `${data.logradouro || ''} - ${data.bairro || ''}`);
+      form.setValue("city", data.localidade || "");
+      form.setValue("state", data.uf || "");
+
+      toast({
+        title: "CEP encontrado!",
+        description: `Endereço preenchido automaticamente: ${data.logradouro}, ${data.bairro}, ${data.localidade}/${data.uf}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro na consulta do CEP",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSearchCEP = () => {
+    const zipCode = form.getValues("zipCode");
+    if (!zipCode) {
+      toast({
+        title: "CEP obrigatório",
+        description: "Digite um CEP para realizar a busca.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cleanCEP = zipCode.replace(/[^\d]/g, '');
+    if (cleanCEP.length !== 8) {
+      toast({
+        title: "CEP inválido",
+        description: "O CEP deve ter 8 dígitos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    searchCEPMutation.mutate(zipCode);
+  };
+
   const onSubmit = (data: z.infer<typeof supplierFormSchema>) => {
     if (supplier) {
       updateMutation.mutate(data);
@@ -163,13 +225,21 @@ export default function SupplierForm({ supplier, onSuccess }: SupplierFormProps)
           />
         </div>
 
-        <div>
-          <Label htmlFor="zipCode">CEP</Label>
-          <Input
-            id="zipCode"
-            {...form.register("zipCode")}
-            placeholder="00000-000"
-          />
+        <div className="flex items-end gap-2">
+          <div>
+            <Label htmlFor="zipCode">CEP</Label>
+            <Input
+              id="zipCode"
+              {...form.register("zipCode")}
+              placeholder="00000-000"
+            />
+            {form.formState.errors.zipCode && (
+              <p className="text-sm text-red-600 mt-1">{form.formState.errors.zipCode.message}</p>
+            )}
+          </div>
+          <Button type="button" onClick={handleSearchCEP} disabled={searchCEPMutation.isPending}>
+            {searchCEPMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          </Button>
         </div>
 
         <div className="col-span-2">

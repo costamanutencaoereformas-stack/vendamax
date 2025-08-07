@@ -175,6 +175,42 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
     },
   });
 
+  const searchCEPMutation = useMutation({
+    mutationFn: async (cep: string) => {
+      // Remove formatting from CEP
+      const cleanCEP = cep.replace(/[^\d]/g, '');
+      
+      // Use ViaCEP API (free Brazilian CEP service)
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
+      if (!response.ok) {
+        throw new Error("CEP não encontrado ou API temporariamente indisponível");
+      }
+      const data = await response.json();
+      if (data.erro) {
+        throw new Error("CEP não encontrado");
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      // Fill form with API data
+      form.setValue("address", `${data.logradouro || ''} - ${data.bairro || ''}`);
+      form.setValue("city", data.localidade || "");
+      form.setValue("state", data.uf || "");
+      
+      toast({
+        title: "CEP encontrado!",
+        description: `Endereço preenchido automaticamente: ${data.logradouro}, ${data.bairro}, ${data.localidade}/${data.uf}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro na consulta do CEP",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSearchCNPJ = () => {
     const document = form.getValues("document");
     if (!document) {
@@ -206,6 +242,30 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
     }
 
     searchCNPJMutation.mutate(document);
+  };
+
+  const handleSearchCEP = () => {
+    const zipCode = form.getValues("zipCode");
+    if (!zipCode) {
+      toast({
+        title: "CEP obrigatório",
+        description: "Digite um CEP para realizar a busca.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cleanCEP = zipCode.replace(/[^\d]/g, '');
+    if (cleanCEP.length !== 8) {
+      toast({
+        title: "CEP inválido",
+        description: "O CEP deve ter 8 dígitos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    searchCEPMutation.mutate(zipCode);
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -319,10 +379,31 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
 
         <div>
           <Label htmlFor="zipCode">CEP</Label>
-          <Input
-            id="zipCode"
-            {...form.register("zipCode")}
-            placeholder="00000-000"
+          <div className="flex gap-2">
+            <Input
+              id="zipCode"
+              {...form.register("zipCode")}
+              placeholder="00000-000"
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSearchCEP}
+              disabled={searchCEPMutation.isPending}
+              className="px-3"
+            >
+              {searchCEPMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-blue-600 mt-1">
+            • Clique no ícone para buscar endereço automaticamente
+          </p>
           />
         </div>
 

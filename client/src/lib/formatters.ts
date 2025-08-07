@@ -50,6 +50,21 @@ export function formatDateTime(date: Date | string): string {
   }).format(d);
 }
 
+export function formatCEP(cep: string): string {
+  const clean = cep.replace(/[^\d]/g, '');
+  
+  if (clean.length === 8) {
+    return clean.replace(/(\d{5})(\d{3})/, '$1-$2');
+  }
+  
+  return cep;
+}
+
+export function validateCEP(cep: string): boolean {
+  const clean = cep.replace(/[^\d]/g, '');
+  return clean.length === 8 && /^\d+$/.test(clean);
+}
+
 export function getDocumentType(document: string): 'CPF' | 'CNPJ' | 'UNKNOWN' {
   const clean = document.replace(/[^\d]/g, '');
   
