@@ -24,6 +24,7 @@ const quoteItemSchema = z.object({
 
 const quoteFormSchema = insertQuoteSchema.extend({
   validUntil: z.string().min(1, "Data de validade é obrigatória"),
+  status: z.string().min(1, "Status é obrigatório"),
   subtotal: z.string(),
   discount: z.string().optional(),
   total: z.string(),
@@ -51,6 +52,7 @@ export default function QuoteForm({ quote, onSuccess }: QuoteFormProps) {
     defaultValues: {
       number: quote?.number || "",
       customerId: quote?.customerId || "",
+      status: quote?.status || "PENDING",
       validUntil: quote?.validUntil ? new Date(quote.validUntil).toISOString().split('T')[0] : "",
       subtotal: quote?.subtotal || "0",
       discount: quote?.discount || "0",
@@ -94,7 +96,7 @@ export default function QuoteForm({ quote, onSuccess }: QuoteFormProps) {
         discount: data.discount || "0",
         total: data.total,
         notes: data.notes || null,
-        status: "PENDING",
+        status: data.status,
         userId: null,
       };
 
@@ -208,6 +210,27 @@ export default function QuoteForm({ quote, onSuccess }: QuoteFormProps) {
           />
           {form.formState.errors.validUntil && (
             <p className="text-sm text-red-600 mt-1">{form.formState.errors.validUntil.message}</p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="status">Status *</Label>
+          <Select
+            value={form.watch("status")}
+            onValueChange={(value) => form.setValue("status", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PENDING">Pendente</SelectItem>
+              <SelectItem value="APPROVED">Aprovado</SelectItem>
+              <SelectItem value="REJECTED">Rejeitado</SelectItem>
+              <SelectItem value="CONVERTED">Convertido</SelectItem>
+            </SelectContent>
+          </Select>
+          {form.formState.errors.status && (
+            <p className="text-sm text-red-600 mt-1">{form.formState.errors.status.message}</p>
           )}
         </div>
       </div>
