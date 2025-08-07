@@ -1,0 +1,77 @@
+Sistema de Orçamento e Vendas – Especificação Detalhada
+🏗️ 1. Estrutura Geral
+- Plataforma: Web (responsiva) ou Desktop
+- Banco de dados: MySQL / PostgreSQL / SQLite
+- Linguagem sugerida: Python (Django/Flask), JavaScript (Node.js + React), ou C# (.NET)
+
+👥 2. Módulo de Cadastro
+Clientes
+- Nome completo / Razão social
+- CPF/CNPJ com validação
+- Endereço completo (CEP, UF, cidade, bairro, rua, número, complemento)
+- Contatos (telefone, celular, e-mail)
+- Histórico de compras e orçamentos
+- Classificação (cliente ativo, inativo, VIP, etc.)
+Produtos
+- Código interno e código de barras
+- Nome e descrição
+- Categoria e subcategoria
+- Unidade de medida
+- Preço de custo e preço de venda
+- Estoque atual, mínimo e máximo
+- Fornecedor vinculado
+- Imagem do produto
+Fornecedores
+- Razão social / Nome fantasia
+- CNPJ com validação
+- Endereço e contatos
+- Produtos fornecidos
+- Condições comerciais (prazo, forma de pagamento)
+
+📦 3. Módulo de Estoque
+- Entrada e saída de produtos
+- Inventário e ajustes manuais
+- Relatórios de movimentação
+- Alerta de estoque baixo
+- Controle por lote e validade (opcional)
+
+💰 4. Módulo de Orçamentos
+- Criação de orçamento com validade
+- Seleção de cliente e produtos
+- Aplicação de descontos por item ou total
+- Condições de pagamento (à vista, parcelado, boleto, PIX)
+- Impressão ou envio por e-mail/WhatsApp
+- Conversão de orçamento em venda
+
+🛒 5. Módulo de Vendas
+- Venda direta ou via orçamento
+- PDV com atalhos e interface rápida
+- Emissão de nota fiscal (NFC-e / NFe)
+- Controle de formas de pagamento
+- Cancelamento e devolução
+- Relatórios por período, vendedor, produto
+
+📥 6. Importação de Nota Fiscal
+- Leitura de XML de NFe
+- Importação automática de produtos e fornecedores
+- Atualização de estoque com base na nota
+- Armazenamento dos arquivos XML
+- Validação de dados fiscais
+
+📊 7. Relatórios e Indicadores
+- Vendas por período, produto, cliente
+- Orçamentos convertidos vs. perdidos
+- Margem de lucro por item
+- Estoque parado ou com alta rotatividade
+- Ranking de clientes e produtos
+
+🔐 8. Controle de Usuários e Permissões
+- Cadastro de usuários com níveis de acesso
+- Logs de atividades (quem fez o quê e quando)
+- Permissões por módulo (ex: só gerente pode cancelar venda)
+
+⚙️ 9. Configurações Gerais
+- Dados da empresa (para emissão fiscal)
+- Personalização de layout de orçamento e venda
+- Integração com sistemas contábeis ou ERPs
+- Backup automático e segurança de dados
