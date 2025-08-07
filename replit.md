@@ -50,6 +50,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Business Logic Features
 - **Brazilian Compliance**: CPF/CNPJ validation, Brazilian phone/address formatting
+- **CNPJ API Integration**: Automatic company data import via BrasilAPI for new customer registration
 - **Inventory Management**: Real-time stock tracking, low stock alerts, movement history
 - **Quote to Sale Workflow**: Convert approved quotes directly to sales
 - **Multi-payment Support**: Cash, card, PIX, and boleto payment methods

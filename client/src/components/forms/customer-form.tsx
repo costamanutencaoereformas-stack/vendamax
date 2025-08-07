@@ -2,11 +2,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Search, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { insertCustomerSchema } from "@shared/schema";
@@ -26,6 +28,7 @@ interface CustomerFormProps {
 
 export default function CustomerForm({ customer, onSuccess }: CustomerFormProps) {
   const { toast } = useToast();
+  const [isSearchingCNPJ, setIsSearchingCNPJ] = useState(false);
   
   const form = useForm<z.infer<typeof customerFormSchema>>({
     resolver: zodResolver(customerFormSchema),
@@ -110,9 +113,105 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
     }
   };
 
+  const searchCNPJMutation = useMutation({
+    mutationFn: async (cnpj: string) => {
+      // Remove formatting from CNPJ
+      const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
+      
+      // Use a free Brazilian CNPJ API
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`);
+      if (!response.ok) {
+        throw new Error("CNPJ não encontrado ou API temporariamente indisponível");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Fill form with API data
+      const companyName = data.razao_social || data.nome_fantasia || "";
+      form.setValue("name", companyName);
+      
+      // Contact information
+      if (data.email) {
+        form.setValue("email", data.email);
+      }
+      
+      // Phone formatting
+      if (data.ddd_telefone_1 && data.telefone_1) {
+        const formattedPhone = `(${data.ddd_telefone_1}) ${data.telefone_1.replace(/(\d{4,5})(\d{4})/, '$1-$2')}`;
+        form.setValue("phone", formattedPhone);
+      }
+      
+      // Address information
+      let fullAddress = "";
+      if (data.logradouro) {
+        fullAddress = data.logradouro;
+        if (data.numero) {
+          fullAddress += `, ${data.numero}`;
+        }
+        if (data.complemento) {
+          fullAddress += `, ${data.complemento}`;
+        }
+        if (data.bairro) {
+          fullAddress += ` - ${data.bairro}`;
+        }
+        form.setValue("address", fullAddress);
+      }
+      
+      form.setValue("city", data.municipio || "");
+      form.setValue("state", data.uf || "");
+      form.setValue("zipCode", data.cep || "");
+
+      toast({
+        title: "Dados importados com sucesso!",
+        description: `Informações da empresa ${companyName} foram preenchidas automaticamente.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro na consulta",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSearchCNPJ = () => {
+    const document = form.getValues("document");
+    if (!document) {
+      toast({
+        title: "CNPJ obrigatório",
+        description: "Digite um CNPJ para realizar a busca.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cleanCNPJ = document.replace(/[^\d]/g, '');
+    if (cleanCNPJ.length !== 14) {
+      toast({
+        title: "CNPJ inválido",
+        description: "O CNPJ deve ter 14 dígitos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateCNPJ(cleanCNPJ)) {
+      toast({
+        title: "CNPJ inválido",
+        description: "O CNPJ digitado não é válido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    searchCNPJMutation.mutate(document);
+  };
+
   const isPending = createMutation.isPending || updateMutation.isPending;
   const documentValue = form.watch("document");
   const detectedType = documentValue ? getDocumentType(documentValue) : null;
+  const canSearchCNPJ = detectedType === "CNPJ" && !customer; // Only for new customers
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -131,14 +230,36 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
 
         <div className="col-span-2">
           <Label htmlFor="document">CPF/CNPJ *</Label>
-          <Input
-            id="document"
-            {...form.register("document")}
-            placeholder="000.000.000-00 ou 00.000.000/0000-00"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="document"
+              {...form.register("document")}
+              placeholder="000.000.000-00 ou 00.000.000/0000-00"
+              className="flex-1"
+            />
+            {canSearchCNPJ && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSearchCNPJ}
+                disabled={searchCNPJMutation.isPending}
+                className="px-3"
+              >
+                {searchCNPJMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+          </div>
           {detectedType && (
             <p className="text-xs text-gray-500 mt-1">
               Tipo detectado: {detectedType}
+              {canSearchCNPJ && (
+                <span className="text-blue-600 ml-2">• Clique no ícone para buscar dados da empresa</span>
+              )}
             </p>
           )}
           {form.formState.errors.document && (
