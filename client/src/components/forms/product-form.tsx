@@ -198,7 +198,6 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
               <SelectValue placeholder="Selecione uma categoria" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Sem categoria</SelectItem>
               {categories?.map((category: Category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -218,7 +217,6 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
               <SelectValue placeholder="Selecione um fornecedor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Sem fornecedor</SelectItem>
               {suppliers?.map((supplier: Supplier) => (
                 <SelectItem key={supplier.id} value={supplier.id}>
                   {supplier.name}
