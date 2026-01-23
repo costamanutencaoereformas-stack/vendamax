@@ -17,7 +17,7 @@ if (!process.env.DATABASE_URL && !process.env.VERCEL) {
 
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes-simple";
 import { setupVite, serveStatic, log } from "./vite";
 import { runMigrations, verifyDbConsistency } from "./supabase";
 
