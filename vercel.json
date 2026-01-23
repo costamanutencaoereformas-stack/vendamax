@@ -13,26 +13,18 @@
             }
         }
     ],
-    "routes": [
+    "rewrites": [
         {
-            "src": "/api/(.*)",
-            "dest": "/server/index.ts"
+            "source": "/api/(.*)",
+            "destination": "/server/index.ts"
         },
         {
-            "src": "/uploads/(.*)",
-            "dest": "/server/index.ts"
+            "source": "/uploads/(.*)",
+            "destination": "/server/index.ts"
         },
         {
-            "src": "/assets/(.*)",
-            "dest": "/dist/public/assets/$1"
-        },
-        {
-            "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$)",
-            "dest": "/dist/public/$1"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/dist/public/index.html"
+            "source": "/((?!api/|uploads/).*)",
+            "destination": "/index.html"
         }
     ],
     "env": {
