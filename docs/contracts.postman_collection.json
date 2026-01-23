@@ -1,0 +1,144 @@
+{
+  "info": {
+    "name": "BudgetSales - Contracts API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "b2e8d8c8-7a67-4c7a-9f6d-contr-0001"
+  },
+  "item": [
+    {
+      "name": "List Contracts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/contracts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "contracts"]
+        }
+      }
+    },
+    {
+      "name": "Get Contract by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/contracts/{{contractId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "contracts", "{{contractId}}"]
+        }
+      }
+    },
+    {
+      "name": "Create Contract (admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "x-user-role", "value": "admin"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"number\": \"CTR000001\",\n  \"title\": \"Contrato Exemplo\",\n  \"customerId\": null,\n  \"projectId\": null,\n  \"status\": \"ACTIVE\",\n  \"startDate\": \"2025-01-01\",\n  \"endDate\": \"2025-12-31\",\n  \"totalValue\": \"10000.00\",\n  \"paymentTerms\": \"30/60\",\n  \"renewal\": \"NONE\",\n  \"cancelDate\": null,\n  \"notes\": \"Observações...\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/contracts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "contracts"]
+        }
+      }
+    },
+    {
+      "name": "Update Contract (admin)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "x-user-role", "value": "admin"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Contrato Atualizado\",\n  \"status\": \"ACTIVE\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/contracts/{{contractId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "contracts", "{{contractId}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Contract (admin)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {"key": "x-user-role", "value": "admin"}
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/contracts/{{contractId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "contracts", "{{contractId}}"]
+        }
+      }
+    },
+    {
+      "name": "List Contract Documents",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/contracts/{{contractId}}/documents",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "contracts", "{{contractId}}", "documents"]
+        }
+      }
+    },
+    {
+      "name": "Add Contract Document (admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "x-user-role", "value": "admin"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Anexo.pdf\",\n  \"url\": \"https://example.com/anexo.pdf\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/contracts/{{contractId}}/documents",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "contracts", "{{contractId}}", "documents"]
+        }
+      }
+    },
+    {
+      "name": "Delete Contract Document (admin)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {"key": "x-user-role", "value": "admin"}
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/contract-documents/{{documentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "contract-documents", "{{documentId}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5173"
+    },
+    {
+      "key": "contractId",
+      "value": ""
+    },
+    {
+      "key": "documentId",
+      "value": ""
+    }
+  ]
+}

@@ -1,8 +1,12 @@
-import { Plus, UserPlus, Package, FileInput, AlertTriangle } from "lucide-react";
+import { Plus, UserPlus, Package, AlertTriangle, Banknote } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-const actions = [
+type ActionColor = "green" | "blue" | "purple" | "orange";
+
+const actions: Array<{ title: string; href: string; icon: any; color: ActionColor }> = [
   {
     title: "Nova Venda",
     href: "/sales",
@@ -22,74 +26,88 @@ const actions = [
     color: "purple",
   },
   {
-    title: "Importar NF",
-    href: "/import",
-    icon: FileInput,
+    title: "Financeiro",
+    href: "/finance",
+    icon: Banknote,
     color: "orange",
   },
 ];
 
-const colorClasses = {
-  green: "bg-green-100 text-green-600",
-  blue: "bg-blue-100 text-blue-600",
-  purple: "bg-purple-100 text-purple-600",
-  orange: "bg-orange-100 text-orange-600",
+const colorClasses: Record<ActionColor, string> = {
+  green: "bg-green-50 text-green-700 hover:bg-green-100 border-green-200",
+  blue: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200",
+  purple: "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200",
+  orange: "bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-200",
+};
+
+const iconClasses: Record<ActionColor, string> = {
+  green: "text-green-500 group-hover:text-green-600",
+  blue: "text-blue-500 group-hover:text-blue-600",
+  purple: "text-purple-500 group-hover:text-purple-600",
+  orange: "text-orange-500 group-hover:text-orange-600",
 };
 
 export default function QuickActions() {
   const [, setLocation] = useLocation();
   
-  const { data: lowStockProducts } = useQuery({
+  const { data: lowStockProducts = [] } = useQuery<any[]>({
     queryKey: ["/api/products/low-stock"],
   });
 
-  const lowStockCount = lowStockProducts?.length || 0;
+  const lowStockCount = lowStockProducts.length || 0;
 
   return (
     <div className="space-y-6">
       {/* Quick Actions Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
-        <div className="space-y-3">
-          {actions.map((action) => (
-            <button
-              key={action.title}
-              onClick={() => setLocation(action.href)}
-              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <div className="flex items-center space-x-3">
-                <div className={`w-8 h-8 ${colorClasses[action.color]} rounded-lg flex items-center justify-center`}>
-                  <action.icon className="h-4 w-4" />
+      <Card className="h-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium">Ações Rápidas</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-3">
+          {actions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Button
+                key={action.href}
+                variant="outline"
+                className={`group h-auto min-h-[100px] flex-col items-center justify-center gap-2 p-4 text-center transition-all duration-200 hover:shadow-sm ${colorClasses[action.color]} border`}
+                onClick={() => setLocation(action.href)}
+              >
+                <div className={`p-2.5 rounded-lg bg-white/50 backdrop-blur-sm ${colorClasses[action.color].split(' ')[0]} border`}>
+                  <Icon className={`h-5 w-5 transition-colors ${iconClasses[action.color]}`} />
                 </div>
-                <span className="text-sm font-medium text-gray-900">{action.title}</span>
-              </div>
-              <span className="text-gray-400">→</span>
-            </button>
-          ))}
-        </div>
-      </div>
+                <span className="text-sm font-medium">{action.title}</span>
+              </Button>
+            );
+          })}
+        </CardContent>
+      </Card>
       
       {/* Low Stock Alert */}
       {lowStockCount > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
-          <div className="flex items-start space-x-3">
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <AlertTriangle className="text-orange-600 h-4 w-4" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-3">
+              <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="text-destructive h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-1">Estoque Baixo</h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {lowStockCount} produto{lowStockCount > 1 ? 's' : ''} com estoque abaixo do mínimo
+                </p>
+                <Button 
+                  variant="link"
+                  size="sm"
+                  className="px-0 h-auto"
+                  onClick={() => setLocation("/inventory")}
+                >
+                  Visualizar produtos →
+                </Button>
+              </div>
             </div>
-            <div>
-              <h4 className="text-sm font-semibold text-orange-800 mb-1">Estoque Baixo</h4>
-              <p className="text-sm text-orange-700 mb-3">
-                {lowStockCount} produto{lowStockCount > 1 ? 's' : ''} com estoque abaixo do mínimo
-              </p>
-              <button 
-                onClick={() => setLocation("/inventory")}
-                className="text-orange-600 hover:text-orange-700 text-sm font-medium"
-              >
-                Visualizar produtos →
-              </button>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

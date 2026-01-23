@@ -1,0 +1,25 @@
+# Netlify configuration for BudgetSales (Vite + React client)
+# Frontend build uses Vite config at root with root set to client/
+
+[build]
+  command = "npm run build"
+  publish = "dist/public"
+  # Optional: only trigger build when client/shared changes
+  # ignore = "git diff --quiet HEAD^ HEAD client/ shared/"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# SPA fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Optional API proxy (set your backend URL after deploying API)
+# Uncomment and set your backend origin to keep using relative /api/* calls in the client
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://YOUR-BACKEND-URL/api/:splat"
+#   status = 200
+#   force = true

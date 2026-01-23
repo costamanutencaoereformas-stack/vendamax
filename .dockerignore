@@ -1,0 +1,24 @@
+# dependencies
+node_modules
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env
+.env
+.env.*
+
+# Vite cache
+.client-cache
+.vite
+
+# build outputs
+server/public
+.dist
+coverage
+
+# local files
+.DS_Store
+Thumbs.db

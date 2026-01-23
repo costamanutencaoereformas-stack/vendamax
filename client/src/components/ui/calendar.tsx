@@ -7,12 +7,21 @@ import { buttonVariants } from "@/components/ui/button"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
+type BadgeInfo = { count: number; colorClass?: string }
+type ExtendedCalendarProps = CalendarProps & {
+  getBadge?: (date: Date) => BadgeInfo | null
+  getTooltip?: (date: Date) => string | null
+}
+
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  getBadge,
+  getTooltip,
+  components: overrideComponents,
   ...props
-}: CalendarProps) {
+}: ExtendedCalendarProps) {
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -58,6 +67,26 @@ function Calendar({
         IconRight: ({ className, ...props }) => (
           <ChevronRight className={cn("h-4 w-4", className)} {...props} />
         ),
+        DayContent: ({ date }) => {
+          const badge = getBadge ? getBadge(date) : null
+          const tooltip = getTooltip ? getTooltip(date) : null
+          return (
+            <div className="relative flex items-center justify-center w-full h-full" title={tooltip || undefined}>
+              {date.getDate()}
+              {badge && badge.count > 0 && (
+                <span
+                  className={cn(
+                    "absolute bottom-1 right-1 inline-flex items-center justify-center text-[10px] leading-none px-1.5 min-w-[1.1rem] h-[1.1rem] rounded-full",
+                    badge.colorClass || "bg-primary text-primary-foreground"
+                  )}
+                >
+                  {badge.count}
+                </span>
+              )}
+            </div>
+          )
+        },
+        ...overrideComponents,
       }}
       {...props}
     />

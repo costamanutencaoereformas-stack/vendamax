@@ -1,0 +1,14 @@
+# Netlify config (kept here for clarity). The authoritative one is at repo root.
+# This duplicate helps deployment tools detect configuration under /client as well.
+
+[build]
+  command = "npm run build"
+  publish = "../dist/public"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

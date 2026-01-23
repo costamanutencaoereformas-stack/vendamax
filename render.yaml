@@ -1,0 +1,29 @@
+# Render Blueprint for full-stack deploy (frontend + backend)
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: vendamax
+    env: docker
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    healthCheckPath: /health
+    plan: free
+    # Optional: choose closest region
+    # region: ohio
+
+    envVars:
+      # Required at runtime (set values in Render dashboard after creating the service)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      # Optional CORS origins (comma-separated). Example provided; adjust after first deploy.
+      - key: ALLOWED_ORIGINS
+        value: "https://vendamax.onrender.com, http://localhost:5173"
+        sync: false
+      # Render injects PORT automatically; we default to 5000 in Dockerfile, but it's fine to set too
+      - key: PORT
+        value: "5000"
+        sync: false

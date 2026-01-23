@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import type { Customer } from "@shared/schema";
 const customerFormSchema = insertCustomerSchema.extend({
   document: documentValidationSchema,
   email: z.string().email("E-mail inválido").optional().or(z.literal("")),
+  stateRegistration: z.string().optional(),
+  stateRegistrationExempt: z.boolean().optional(),
 });
 
 interface CustomerFormProps {
@@ -29,6 +31,16 @@ interface CustomerFormProps {
 export default function CustomerForm({ customer, onSuccess }: CustomerFormProps) {
   const { toast } = useToast();
   const [isSearchingCNPJ, setIsSearchingCNPJ] = useState(false);
+
+  // Query para buscar segmentos disponíveis
+  const { data: segments = [] } = useQuery({
+    queryKey: ["segments"],
+    queryFn: async () => {
+      const response = await fetch("/api/segments");
+      if (!response.ok) throw new Error("Erro ao carregar segmentos");
+      return response.json();
+    },
+  });
   
   const form = useForm<z.infer<typeof customerFormSchema>>({
     resolver: zodResolver(customerFormSchema),
@@ -36,12 +48,16 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
       name: customer?.name || "",
       document: customer?.document || "",
       documentType: customer?.documentType || "CPF",
+      stateRegistration: customer?.stateRegistration || "",
+      stateRegistrationExempt: customer?.stateRegistrationExempt ?? false,
       email: customer?.email || "",
       phone: customer?.phone || "",
       address: customer?.address || "",
       city: customer?.city || "",
       state: customer?.state || "",
       zipCode: customer?.zipCode || "",
+      responsible: customer?.responsible || "",
+      segment: customer?.segment || "",
       isActive: customer?.isActive ?? true,
       classification: customer?.classification || "REGULAR",
     },
@@ -103,7 +119,7 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
 
   const onSubmit = (data: z.infer<typeof customerFormSchema>) => {
     // Auto-detect document type
-    const documentType = getDocumentType(data.document);
+    const documentType = getDocumentType(data.document) || "CPF";
     const submitData = { ...data, documentType };
     
     if (customer) {
@@ -118,8 +134,15 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
       // Remove formatting from CNPJ
       const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
       
-      // Use a free Brazilian CNPJ API
-      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`);
+      // Use a free Brazilian CNPJ API with proper headers
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) {
         throw new Error("CNPJ não encontrado ou API temporariamente indisponível");
       }
@@ -135,10 +158,16 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
         form.setValue("email", data.email);
       }
       
-      // Phone formatting
-      if (data.ddd_telefone_1 && data.telefone_1) {
-        const formattedPhone = `(${data.ddd_telefone_1}) ${data.telefone_1.replace(/(\d{4,5})(\d{4})/, '$1-$2')}`;
-        form.setValue("phone", formattedPhone);
+      // Phone formatting - BrasilAPI returns phone with DDD together
+      if (data.ddd_telefone_1) {
+        const phoneWithDDD = data.ddd_telefone_1.toString();
+        if (phoneWithDDD.length >= 10) {
+          // Extract DDD (first 2 digits) and phone number (remaining digits)
+          const ddd = phoneWithDDD.substring(0, 2);
+          const phoneNumber = phoneWithDDD.substring(2);
+          const formattedPhone = `(${ddd}) ${phoneNumber.replace(/(\d{4,5})(\d{4})/, '$1-$2')}`;
+          form.setValue("phone", formattedPhone);
+        }
       }
       
       // Address information
@@ -270,13 +299,24 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const documentValue = form.watch("document");
-  const detectedType = documentValue ? getDocumentType(documentValue) : null;
+  const detectedType = documentValue ? getDocumentType(documentValue) || "CPF" : "CPF";
   const canSearchCNPJ = detectedType === "CNPJ" && !customer; // Only for new customers
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
+    <form
+      onSubmit={form.handleSubmit(onSubmit)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          const tag = (e.target as HTMLElement).tagName;
+          if (tag !== 'TEXTAREA') {
+            e.preventDefault();
+          }
+        }
+      }}
+      className="space-y-4"
+    >
+      <div className="space-y-4">
+        <div>
           <Label htmlFor="name">Nome/Razão Social *</Label>
           <Input
             id="name"
@@ -288,7 +328,7 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
           )}
         </div>
 
-        <div className="col-span-2">
+        <div>
           <Label htmlFor="document">CPF/CNPJ *</Label>
           <div className="flex gap-2">
             <Input
@@ -327,6 +367,44 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
           )}
         </div>
 
+        {/* Debug: Show detected type */}
+        {documentValue && (
+          <p className="text-xs text-gray-400">Debug: Detected type = {detectedType}</p>
+        )}
+        
+        {detectedType === "CNPJ" && (
+          <div className="space-y-4 border border-blue-200 p-4 rounded-lg bg-blue-50">
+            <h4 className="text-sm font-medium text-blue-900">Dados CNPJ</h4>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="stateRegistrationExempt"
+                checked={form.watch("stateRegistrationExempt") ?? false}
+                onCheckedChange={(checked) => {
+                  form.setValue("stateRegistrationExempt", checked);
+                  if (checked) {
+                    form.setValue("stateRegistration", "");
+                  }
+                }}
+              />
+              <Label htmlFor="stateRegistrationExempt">Isento de Inscrição Estadual</Label>
+            </div>
+            
+            {!form.watch("stateRegistrationExempt") && (
+              <div>
+                <Label htmlFor="stateRegistration">Inscrição Estadual</Label>
+                <Input
+                  id="stateRegistration"
+                  {...form.register("stateRegistration")}
+                  placeholder="000.000.000.000"
+                />
+                {form.formState.errors.stateRegistration && (
+                  <p className="text-sm text-red-600 mt-1">{form.formState.errors.stateRegistration.message}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div>
           <Label htmlFor="email">E-mail</Label>
           <Input
@@ -349,7 +427,7 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
           />
         </div>
 
-        <div className="col-span-2">
+        <div>
           <Label htmlFor="address">Endereço</Label>
           <Input
             id="address"
@@ -404,13 +482,46 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
           <p className="text-xs text-blue-600 mt-1">
             • Clique no ícone para buscar endereço automaticamente
           </p>
+        </div>
+
+        <div>
+          <Label htmlFor="responsible">Responsável</Label>
+          <Input
+            id="responsible"
+            {...form.register("responsible")}
+            placeholder="Nome do responsável pelo cliente"
           />
+        </div>
+
+        <div>
+          <Label htmlFor="segment">Segmento</Label>
+          <Select
+            value={form.watch("segment") || undefined}
+            onValueChange={(value) => form.setValue("segment", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um segmento" />
+            </SelectTrigger>
+            <SelectContent>
+              {segments.map((segment: any) => (
+                <SelectItem key={segment.id} value={segment.name}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: segment.color }}
+                    />
+                    {segment.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
           <Label htmlFor="classification">Classificação</Label>
           <Select
-            value={form.watch("classification")}
+            value={form.watch("classification") || undefined}
             onValueChange={(value) => form.setValue("classification", value)}
           >
             <SelectTrigger>
@@ -424,10 +535,10 @@ export default function CustomerForm({ customer, onSuccess }: CustomerFormProps)
           </Select>
         </div>
 
-        <div className="col-span-2 flex items-center space-x-2">
+        <div className="flex items-center space-x-2">
           <Switch
             id="isActive"
-            checked={form.watch("isActive")}
+            checked={form.watch("isActive") ?? true}
             onCheckedChange={(checked) => form.setValue("isActive", checked)}
           />
           <Label htmlFor="isActive">Cliente ativo</Label>

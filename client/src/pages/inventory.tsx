@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus, Search, TrendingUp, TrendingDown, RotateCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -33,15 +33,15 @@ export default function Inventory() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
 
-  const { data: inventory, isLoading: inventoryLoading } = useQuery({
+  const { data: inventory, isLoading: inventoryLoading } = useQuery<any[]>({
     queryKey: ["/api/inventory"],
   });
 
-  const { data: products } = useQuery({
+  const { data: products } = useQuery<any[]>({
     queryKey: ["/api/products"],
   });
 
-  const { data: lowStockProducts } = useQuery({
+  const { data: lowStockProducts } = useQuery<any[]>({
     queryKey: ["/api/products/low-stock"],
   });
 
@@ -198,9 +198,12 @@ export default function Inventory() {
               Nova Movimentação
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="w-screen h-[90vh] sm:h-auto sm:max-w-[640px] max-w-none p-4 overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Registrar Movimentação</DialogTitle>
+              <DialogDescription>
+                Preencha os dados para registrar a movimentação de estoque.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div>
@@ -293,6 +296,7 @@ export default function Inventory() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <div className="min-w-[720px]">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -343,6 +347,7 @@ export default function Inventory() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </CardContent>

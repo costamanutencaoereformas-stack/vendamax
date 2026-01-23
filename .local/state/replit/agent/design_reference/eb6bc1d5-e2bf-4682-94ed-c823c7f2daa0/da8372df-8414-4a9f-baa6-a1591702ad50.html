@@ -1,0 +1,683 @@
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Orçamento e Vendas - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-gray-50 font-inter">
+    <!-- @COMPONENT: AppLayout -->
+    <div class="min-h-screen flex">
+        <!-- @COMPONENT: Sidebar -->
+        <div class="w-64 bg-white shadow-sm border-r border-gray-200 fixed h-full z-10">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-gray-900">VendaMax</h1>
+                        <p class="text-xs text-gray-500">Sistema de Gestão</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="mt-6">
+                <div class="px-3">
+                    <div class="space-y-1">
+                        <!-- Dashboard -->
+                        <a href="#" class="bg-primary-50 text-primary-700 group flex items-center px-3 py-2 text-sm font-medium rounded-md" data-event="click:navigateTo" data-implementation="Navigate to dashboard">
+                            <i class="fas fa-home mr-3 text-primary-500"></i>
+                            Dashboard
+                        </a>
+                        
+                        <!-- Cadastros -->
+                        <div class="pt-4">
+                            <p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cadastros</p>
+                            <div class="mt-2 space-y-1">
+                                <a href="#" class="text-gray-700 hover:bg-gray-100 group flex items-center px-3 py-2 text-sm font-medium rounded-md" data-event="click:navigateTo">
+                                    <i class="fas fa-users mr-3 text-gray-400"></i>
+                                    Clientes
+                                </a>
+                                <a href="#" class="text-gray-700 hover:bg-gray-100 group flex items-center px-3 py-2 text-sm font-medium rounded-md" data-event="click:navigateTo">
+                                    <i class="fas fa-box mr-3 text-gray-400"></i>
+                                    Produtos
+                                </a>
+                                <a href="#" class="text-gray-700 hover:bg-gray-100 group flex items-center px-3 py-2 text-sm font-medium rounded-md" data-event="click:navigateTo">
+                                    <i class="fas fa-truck mr-3 text-gray-400"></i>
+                                    Fornecedores
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Operações -->
+                        <div class="pt-4">
+                            <p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Operações</p>
+                            <div class="mt-2 space-y-1">
+                                <a href="#" class="text-gray-700 hover:bg-gray-100 group flex items-center px-3 py-2 text-sm font-medium rounded-md" data-event="click:navigateTo">
+                                    <i class="fas fa-warehouse mr-3 text-gray-400"></i>
+                                    Estoque
+                                </a>
+                                <a href="#" class="text-gray-700 hover:bg-gray-100 group flex items-center px-3 py-2 text-sm font-medium rounded-md" data-event="click:navigateTo">
+                                    <i class="fas fa-file-invoice mr-3 text-gray-400"></i>
+                                    Orçamentos
+                                </a>
+                                <a href="#" class="text-gray-700 hover:bg-gray-100 group flex items-center px-3 py-2 text-sm font-medium rounded-md" data-event="click:navigateTo">
+                                    <i class="fas fa-shopping-cart mr-3 text-gray-400"></i>
+                                    Vendas
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Relatórios -->
+                        <div class="pt-4">
+                            <p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Análise</p>
+                            <div class="mt-2 space-y-1">
+                                <a href="#" class="text-gray-700 hover:bg-gray-100 group flex items-center px-3 py-2 text-sm font-medium rounded-md" data-event="click:navigateTo">
+                                    <i class="fas fa-chart-bar mr-3 text-gray-400"></i>
+                                    Relatórios
+                                </a>
+                                <a href="#" class="text-gray-700 hover:bg-gray-100 group flex items-center px-3 py-2 text-sm font-medium rounded-md" data-event="click:navigateTo">
+                                    <i class="fas fa-file-import mr-3 text-gray-400"></i>
+                                    Importar NF
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            
+            <!-- User Section -->
+            <div class="absolute bottom-0 w-full p-4 border-t border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-gray-600 text-sm"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900" data-bind="user.name">João Silva</p>
+                        <p class="text-xs text-gray-500" data-bind="user.role">Administrador</p>
+                    </div>
+                    <button class="text-gray-400 hover:text-gray-600" data-event="click:logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: Sidebar -->
+        
+        <!-- @COMPONENT: MainContent -->
+        <div class="flex-1 ml-64">
+            <!-- @COMPONENT: Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200">
+                <div class="px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
+                            <p class="text-sm text-gray-600">Visão geral do seu negócio</p>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <!-- Search -->
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <input type="text" placeholder="Buscar..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" data-mock="true">
+                            </div>
+                            <!-- Notifications -->
+                            <button class="relative p-2 text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-bell text-lg"></i>
+                                <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400"></span>
+                            </button>
+                            <!-- Quick Actions -->
+                            <div class="flex space-x-2">
+                                <button class="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors flex items-center space-x-2" data-event="click:createQuote">
+                                    <i class="fas fa-plus"></i>
+                                    <span>Novo Orçamento</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <!-- @END_COMPONENT: Header -->
+            
+            <!-- @COMPONENT: DashboardContent -->
+            <main class="p-6">
+                <!-- @COMPONENT: MetricsCards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- @MAP: metrics.map(metric => ( -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Vendas Hoje</p>
+                                <p class="text-2xl font-bold text-gray-900" data-bind="metrics.dailySales" data-mock="true">R$ 12.450</p>
+                                <p class="text-sm text-green-600 flex items-center mt-1">
+                                    <i class="fas fa-arrow-up text-xs mr-1"></i>
+                                    <span data-bind="metrics.dailyGrowth" data-mock="true">+12.5%</span>
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-dollar-sign text-green-600 text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Orçamentos Pendentes</p>
+                                <p class="text-2xl font-bold text-gray-900" data-bind="metrics.pendingQuotes" data-mock="true">23</p>
+                                <p class="text-sm text-blue-600 flex items-center mt-1">
+                                    <i class="fas fa-clock text-xs mr-1"></i>
+                                    <span data-bind="metrics.averageResponseTime" data-mock="true">2h média</span>
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-file-invoice text-blue-600 text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Produtos em Estoque</p>
+                                <p class="text-2xl font-bold text-gray-900" data-bind="metrics.totalProducts" data-mock="true">1.245</p>
+                                <p class="text-sm text-orange-600 flex items-center mt-1">
+                                    <i class="fas fa-exclamation-triangle text-xs mr-1"></i>
+                                    <span data-bind="metrics.lowStockItems" data-mock="true">15 baixo estoque</span>
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-boxes text-orange-600 text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Clientes Ativos</p>
+                                <p class="text-2xl font-bold text-gray-900" data-bind="metrics.activeCustomers" data-mock="true">456</p>
+                                <p class="text-sm text-purple-600 flex items-center mt-1">
+                                    <i class="fas fa-user-plus text-xs mr-1"></i>
+                                    <span data-bind="metrics.newCustomers" data-mock="true">+8 este mês</span>
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-users text-purple-600 text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+                <!-- @END_COMPONENT: MetricsCards -->
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- @COMPONENT: RecentSales -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200">
+                        <div class="p-6 border-b border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-gray-900">Vendas Recentes</h3>
+                                <button class="text-primary-600 hover:text-primary-700 text-sm font-medium" data-event="click:viewAllSales">
+                                    Ver todas
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200" data-mock="true">
+                                    <!-- @MAP: recentSales.map(sale => ( -->
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                                    <i class="fas fa-user text-gray-500 text-sm"></i>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <p class="text-sm font-medium text-gray-900" data-bind="sale.customerName">Maria Santos</p>
+                                                    <p class="text-sm text-gray-500" data-bind="sale.customerDocument">123.456.789-00</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <p class="text-sm text-gray-900" data-bind="sale.productName">Notebook Dell Inspiron</p>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <p class="text-sm font-medium text-gray-900" data-bind="sale.amount">R$ 2.450,00</p>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800" data-bind="sale.status">
+                                                Concluída
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-bind="sale.date">
+                                            Hoje, 14:30
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                                    <i class="fas fa-user text-gray-500 text-sm"></i>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <p class="text-sm font-medium text-gray-900">José Silva</p>
+                                                    <p class="text-sm text-gray-500">987.654.321-00</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <p class="text-sm text-gray-900">Mouse Sem Fio Logitech</p>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <p class="text-sm font-medium text-gray-900">R$ 89,90</p>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                Processando
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            Hoje, 13:15
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                                    <i class="fas fa-building text-gray-500 text-sm"></i>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <p class="text-sm font-medium text-gray-900">Tech Solutions LTDA</p>
+                                                    <p class="text-sm text-gray-500">12.345.678/0001-90</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <p class="text-sm text-gray-900">Licença Office 365</p>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <p class="text-sm font-medium text-gray-900">R$ 1.200,00</p>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                Concluída
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            Ontem, 16:45
+                                        </td>
+                                    </tr>
+                                    <!-- @END_MAP )) -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: RecentSales -->
+                    
+                    <!-- @COMPONENT: QuickActions -->
+                    <div class="space-y-6">
+                        <!-- Quick Actions Card -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
+                            <div class="space-y-3">
+                                <button class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-event="click:newSale">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-plus text-green-600"></i>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-900">Nova Venda</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </button>
+                                
+                                <button class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-event="click:newCustomer">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-user-plus text-blue-600"></i>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-900">Novo Cliente</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </button>
+                                
+                                <button class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-event="click:newProduct">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-box text-purple-600"></i>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-900">Novo Produto</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </button>
+                                
+                                <button class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-event="click:importNF">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-file-import text-orange-600"></i>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-900">Importar NF</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Low Stock Alert -->
+                        <div class="bg-orange-50 border border-orange-200 rounded-xl p-6">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-exclamation-triangle text-orange-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-semibold text-orange-800 mb-1">Estoque Baixo</h4>
+                                    <p class="text-sm text-orange-700 mb-3">15 produtos com estoque abaixo do mínimo</p>
+                                    <button class="text-orange-600 hover:text-orange-700 text-sm font-medium" data-event="click:viewLowStock">
+                                        Visualizar produtos →
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: QuickActions -->
+                </div>
+                
+                <!-- @COMPONENT: ChartsSection -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Sales Chart -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900">Vendas dos Últimos 7 Dias</h3>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-xs font-medium bg-primary-100 text-primary-700 rounded-md">7 dias</button>
+                                <button class="px-3 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 rounded-md">30 dias</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Simple Chart Placeholder -->
+                        <div class="h-64 flex items-end justify-between space-x-2" data-mock="true">
+                            <!-- Chart bars representation -->
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="w-8 bg-primary-500 rounded-t" style="height: 60%"></div>
+                                <span class="text-xs text-gray-500">Seg</span>
+                            </div>
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="w-8 bg-primary-500 rounded-t" style="height: 45%"></div>
+                                <span class="text-xs text-gray-500">Ter</span>
+                            </div>
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="w-8 bg-primary-500 rounded-t" style="height: 80%"></div>
+                                <span class="text-xs text-gray-500">Qua</span>
+                            </div>
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="w-8 bg-primary-500 rounded-t" style="height: 65%"></div>
+                                <span class="text-xs text-gray-500">Qui</span>
+                            </div>
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="w-8 bg-primary-500 rounded-t" style="height: 90%"></div>
+                                <span class="text-xs text-gray-500">Sex</span>
+                            </div>
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="w-8 bg-primary-500 rounded-t" style="height: 35%"></div>
+                                <span class="text-xs text-gray-500">Sáb</span>
+                            </div>
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="w-8 bg-primary-500 rounded-t" style="height: 25%"></div>
+                                <span class="text-xs text-gray-500">Dom</span>
+                            </div>
+                        </div>
+                        <!-- @FUNCTIONALITY: This chart should be implemented with Chart.js or similar charting library -->
+                    </div>
+                    
+                    <!-- Top Products -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900">Produtos Mais Vendidos</h3>
+                            <button class="text-primary-600 hover:text-primary-700 text-sm font-medium" data-event="click:viewAllProducts">
+                                Ver todos
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4" data-mock="true">
+                            <!-- @MAP: topProducts.map(product => ( -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-laptop text-gray-500"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900" data-bind="product.name">Notebook Dell Inspiron</p>
+                                        <p class="text-xs text-gray-500" data-bind="product.sales">23 vendas</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-medium text-gray-900" data-bind="product.revenue">R$ 56.350</p>
+                                    <div class="w-16 h-2 bg-gray-200 rounded-full">
+                                        <div class="w-full h-2 bg-primary-500 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-mobile-alt text-gray-500"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">iPhone 14 Pro</p>
+                                        <p class="text-xs text-gray-500">18 vendas</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-medium text-gray-900">R$ 89.820</p>
+                                    <div class="w-16 h-2 bg-gray-200 rounded-full">
+                                        <div class="w-4/5 h-2 bg-primary-500 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-mouse text-gray-500"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Mouse Sem Fio Logitech</p>
+                                        <p class="text-xs text-gray-500">34 vendas</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-medium text-gray-900">R$ 3.056</p>
+                                    <div class="w-16 h-2 bg-gray-200 rounded-full">
+                                        <div class="w-3/5 h-2 bg-primary-500 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-keyboard text-gray-500"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Teclado Mecânico</p>
+                                        <p class="text-xs text-gray-500">12 vendas</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-medium text-gray-900">R$ 2.388</p>
+                                    <div class="w-16 h-2 bg-gray-200 rounded-full">
+                                        <div class="w-2/5 h-2 bg-primary-500 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: ChartsSection -->
+            </main>
+            <!-- @END_COMPONENT: DashboardContent -->
+        </div>
+        <!-- @END_COMPONENT: MainContent -->
+    </div>
+    <!-- @END_COMPONENT: AppLayout -->
+
+    <!-- @COMPONENT: Modal Example (Hidden by default) -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden" data-event="click:closeModal">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6" onclick="event.stopPropagation()">
+                <!-- @COMPONENT: CustomerForm -->
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Novo Cliente</h3>
+                    <button class="text-gray-400 hover:text-gray-600" data-event="click:closeModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form class="space-y-4" data-event="submit:createCustomer" data-implementation="Should validate CPF/CNPJ and create customer">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome/Razão Social</label>
+                        <input type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Digite o nome completo" data-mock="true">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label>
+                        <input type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="000.000.000-00" data-mock="true" data-implementation="Should implement CPF/CNPJ validation">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                        <input type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="cliente@exemplo.com" data-mock="true">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                        <input type="tel" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="(11) 99999-9999" data-mock="true">
+                    </div>
+                    
+                    <div class="flex space-x-3 pt-4">
+                        <button type="button" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50" data-event="click:closeModal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">
+                            Salvar Cliente
+                        </button>
+                    </div>
+                </form>
+                <!-- @END_COMPONENT: CustomerForm -->
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: Modal -->
+
+    <script>
+        (function() {
+            // TODO: Implement business logic, API calls, and state management
+            
+            // Mock navigation functionality
+            const navLinks = document.querySelectorAll('[data-event*="navigateTo"]');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Remove active class from all nav items
+                    navLinks.forEach(item => {
+                        item.classList.remove('bg-primary-50', 'text-primary-700');
+                        item.classList.add('text-gray-700', 'hover:bg-gray-100');
+                    });
+                    // Add active class to clicked item
+                    this.classList.add('bg-primary-50', 'text-primary-700');
+                    this.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                    
+                    // Here you would implement actual page navigation
+                    console.log('Navigate to:', this.textContent.trim());
+                });
+            });
+            
+            // Modal functionality
+            const modalOverlay = document.getElementById('modal-overlay');
+            const newCustomerBtn = document.querySelector('[data-event*="newCustomer"]');
+            const closeModalBtns = document.querySelectorAll('[data-event*="closeModal"]');
+            
+            if (newCustomerBtn) {
+                newCustomerBtn.addEventListener('click', function() {
+                    modalOverlay.classList.remove('hidden');
+                });
+            }
+            
+            closeModalBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    modalOverlay.classList.add('hidden');
+                });
+            });
+            
+            // Form submission mock
+            const customerForm = document.querySelector('[data-event*="createCustomer"]');
+            if (customerForm) {
+                customerForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    // TODO: Implement customer creation logic with validation
+                    alert('Cliente criado com sucesso! (Esta é uma simulação)');
+                    modalOverlay.classList.add('hidden');
+                });
+            }
+            
+            // Search functionality mock
+            const searchInput = document.querySelector('input[placeholder="Buscar..."]');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    // TODO: Implement search functionality
+                    console.log('Searching for:', this.value);
+                });
+            }
+            
+            // Quick actions mock
+            const quickActionBtns = document.querySelectorAll('[data-event*="new"]');
+            quickActionBtns.forEach(btn => {
+                if (!btn.getAttribute('data-event').includes('newCustomer')) {
+                    btn.addEventListener('click', function() {
+                        const action = this.getAttribute('data-event').split(':')[1];
+                        console.log('Quick action:', action);
+                        // TODO: Implement specific quick actions
+                    });
+                }
+            });
+            
+        })();
+    </script>
+</body>
+</html>

@@ -9,13 +9,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { insertSupplierSchema } from "@shared/schema";
-import { validateCNPJ } from "@/lib/validators";
+import { validateCNPJ, validateCPF } from "@/lib/validators";
 import type { Supplier } from "@shared/schema";
 import { Search, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 const supplierFormSchema = insertSupplierSchema.extend({
-  cnpj: z.string().min(1, "CNPJ é obrigatório").refine(validateCNPJ, "CNPJ inválido"),
+  // Aceita CPF ou CNPJ no mesmo campo (armazenado em suppliers.cnpj)
+  cnpj: z
+    .string()
+    .min(1, "Documento é obrigatório")
+    .refine((v) => validateCNPJ(v) || validateCPF(v), "Documento inválido (CPF ou CNPJ)"),
   email: z.string().email("E-mail inválido").optional().or(z.literal("")),
 });
 
@@ -42,6 +46,86 @@ export default function SupplierForm({ supplier, onSuccess }: SupplierFormProps)
       paymentTerms: supplier?.paymentTerms || "",
     },
   });
+
+  const searchCNPJMutation = useMutation({
+    mutationFn: async (cnpj: string) => {
+      const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
+      if (cleanCNPJ.length !== 14) {
+        throw new Error("O CNPJ deve ter 14 dígitos.");
+      }
+
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`);
+      if (!response.ok) {
+        throw new Error("CNPJ não encontrado ou API temporariamente indisponível");
+      }
+      const data = await response.json();
+      return data;
+    },
+    onSuccess: (data: any) => {
+      // Map BrasilAPI fields to our form
+      const razao = data.razao_social || data.razaoSocial || '';
+      const fantasia = data.nome_fantasia || data.nomeFantasia || '';
+      const logradouro = data.logradouro || '';
+      const numero = data.numero || '';
+      const complemento = data.complemento || '';
+      const bairro = data.bairro || '';
+      const municipio = data.municipio || data.cidade || '';
+      const uf = data.uf || data.estado || '';
+      const cep = data.cep || '';
+      const email = data.email || '';
+      const telefone = data.ddd_telefone_1 || data.telefone || '';
+
+      form.setValue("name", razao || form.getValues("name"));
+      form.setValue("tradeName", fantasia || form.getValues("tradeName"));
+      const addressParts = [
+        [logradouro, numero].filter(Boolean).join(", "),
+        complemento ? `${complemento}` : '',
+        bairro ? `${bairro}` : ''
+      ].filter(Boolean);
+      if (addressParts.length) form.setValue("address", addressParts.join(" - "));
+      if (municipio) form.setValue("city", municipio);
+      if (uf) form.setValue("state", uf);
+      if (cep) form.setValue("zipCode", cep);
+      if (email) form.setValue("email", email);
+      if (telefone) form.setValue("phone", telefone);
+
+      toast({
+        title: "CNPJ encontrado!",
+        description: "Dados da empresa foram preenchidos automaticamente.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro na consulta do CNPJ",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSearchCNPJ = () => {
+    const cnpj = form.getValues("cnpj");
+    if (!cnpj) {
+      toast({
+        title: "CNPJ obrigatório",
+        description: "Digite um CNPJ para realizar a busca.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const clean = cnpj.replace(/[^\d]/g, '');
+    if (clean.length !== 14) {
+      toast({
+        title: "CNPJ inválido",
+        description: "O CNPJ deve ter 14 dígitos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    searchCNPJMutation.mutate(cnpj);
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: z.infer<typeof supplierFormSchema>) => {
@@ -168,120 +252,98 @@ export default function SupplierForm({ supplier, onSuccess }: SupplierFormProps)
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
-          <Label htmlFor="name">Razão Social *</Label>
-          <Input
-            id="name"
-            {...form.register("name")}
-            placeholder="Digite a razão social"
-          />
-          {form.formState.errors.name && (
-            <p className="text-sm text-red-600 mt-1">{form.formState.errors.name.message}</p>
-          )}
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <div className="space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          <Label htmlFor="name" className="md:w-48 shrink-0">Razão Social *</Label>
+          <div className="flex-1">
+            <Input id="name" {...form.register("name")} placeholder="Digite a razão social" />
+            {form.formState.errors.name && (
+              <p className="text-sm text-red-600 mt-1">{form.formState.errors.name.message}</p>
+            )}
+          </div>
         </div>
 
-        <div className="col-span-2">
-          <Label htmlFor="tradeName">Nome Fantasia</Label>
-          <Input
-            id="tradeName"
-            {...form.register("tradeName")}
-            placeholder="Digite o nome fantasia"
-          />
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          <Label htmlFor="tradeName" className="md:w-48 shrink-0">Nome Fantasia</Label>
+          <div className="flex-1">
+            <Input id="tradeName" {...form.register("tradeName")} placeholder="Digite o nome fantasia" />
+          </div>
         </div>
 
-        <div>
-          <Label htmlFor="cnpj">CNPJ *</Label>
-          <Input
-            id="cnpj"
-            {...form.register("cnpj")}
-            placeholder="00.000.000/0000-00"
-          />
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          <Label htmlFor="cnpj" className="md:w-48 shrink-0">CPF/CNPJ *</Label>
+          <div className="flex-1 flex items-center gap-2">
+            <Input id="cnpj" {...form.register("cnpj")} placeholder="00.000.000/0000-00 ou 000.000.000-00" />
+            <Button type="button" onClick={handleSearchCNPJ} disabled={searchCNPJMutation.isPending}>
+              {searchCNPJMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            </Button>
+          </div>
           {form.formState.errors.cnpj && (
             <p className="text-sm text-red-600 mt-1">{form.formState.errors.cnpj.message}</p>
           )}
         </div>
 
-        <div>
-          <Label htmlFor="email">E-mail</Label>
-          <Input
-            id="email"
-            type="email"
-            {...form.register("email")}
-            placeholder="fornecedor@exemplo.com"
-          />
-          {form.formState.errors.email && (
-            <p className="text-sm text-red-600 mt-1">{form.formState.errors.email.message}</p>
-          )}
-        </div>
-
-        <div>
-          <Label htmlFor="phone">Telefone</Label>
-          <Input
-            id="phone"
-            {...form.register("phone")}
-            placeholder="(11) 99999-9999"
-          />
-        </div>
-
-        <div className="flex items-end gap-2">
-          <div>
-            <Label htmlFor="zipCode">CEP</Label>
-            <Input
-              id="zipCode"
-              {...form.register("zipCode")}
-              placeholder="00000-000"
-            />
-            {form.formState.errors.zipCode && (
-              <p className="text-sm text-red-600 mt-1">{form.formState.errors.zipCode.message}</p>
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          <Label htmlFor="email" className="md:w-48 shrink-0">E-mail</Label>
+          <div className="flex-1">
+            <Input id="email" type="email" {...form.register("email")} placeholder="fornecedor@exemplo.com" />
+            {form.formState.errors.email && (
+              <p className="text-sm text-red-600 mt-1">{form.formState.errors.email.message}</p>
             )}
           </div>
-          <Button type="button" onClick={handleSearchCEP} disabled={searchCEPMutation.isPending}>
-            {searchCEPMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          </Button>
         </div>
 
-        <div className="col-span-2">
-          <Label htmlFor="address">Endereço</Label>
-          <Input
-            id="address"
-            {...form.register("address")}
-            placeholder="Rua, número, complemento"
-          />
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          <Label htmlFor="phone" className="md:w-48 shrink-0">Telefone</Label>
+          <div className="flex-1">
+            <Input id="phone" {...form.register("phone")} placeholder="(11) 99999-9999" />
+          </div>
         </div>
 
-        <div>
-          <Label htmlFor="city">Cidade</Label>
-          <Input
-            id="city"
-            {...form.register("city")}
-            placeholder="São Paulo"
-          />
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          <Label htmlFor="zipCode" className="md:w-48 shrink-0">CEP</Label>
+          <div className="flex-1 flex items-center gap-2">
+            <Input id="zipCode" {...form.register("zipCode")} placeholder="00000-000" />
+            <Button type="button" onClick={handleSearchCEP} disabled={searchCEPMutation.isPending}>
+              {searchCEPMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+        {form.formState.errors.zipCode && (
+          <p className="text-sm text-red-600 ml-0 md:ml-48">{form.formState.errors.zipCode.message}</p>
+        )}
+
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          <Label htmlFor="address" className="md:w-48 shrink-0">Endereço</Label>
+          <div className="flex-1">
+            <Input id="address" {...form.register("address")} placeholder="Rua, número, complemento" />
+          </div>
         </div>
 
-        <div>
-          <Label htmlFor="state">Estado</Label>
-          <Input
-            id="state"
-            {...form.register("state")}
-            placeholder="SP"
-            maxLength={2}
-          />
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          <Label htmlFor="city" className="md:w-48 shrink-0">Cidade</Label>
+          <div className="flex-1">
+            <Input id="city" {...form.register("city")} placeholder="São Paulo" />
+          </div>
         </div>
 
-        <div className="col-span-2">
-          <Label htmlFor="paymentTerms">Condições de Pagamento</Label>
-          <Textarea
-            id="paymentTerms"
-            {...form.register("paymentTerms")}
-            placeholder="Ex: 30/60/90 dias, À vista, etc."
-            rows={3}
-          />
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          <Label htmlFor="state" className="md:w-48 shrink-0">Estado</Label>
+          <div className="flex-1">
+            <Input id="state" {...form.register("state")} placeholder="SP" maxLength={2} />
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-2 md:items-start">
+          <Label htmlFor="paymentTerms" className="md:w-48 shrink-0">Condições de Pagamento</Label>
+          <div className="flex-1">
+            <Textarea id="paymentTerms" {...form.register("paymentTerms")} placeholder="Ex: 30/60/90 dias, À vista, etc." rows={3} />
+          </div>
         </div>
       </div>
 
-      <div className="flex justify-end space-x-2 pt-4">
+      <div className="flex justify-end space-x-2 pt-2">
         <Button type="button" variant="outline" onClick={onSuccess}>
           Cancelar
         </Button>
