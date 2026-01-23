@@ -8,11 +8,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = new URL('.', import.meta.url).pathname;
 
 // Carregar variáveis de ambiente do arquivo .env
-const result = dotenv.config({ path: resolve(process.cwd(), '.env') });
+dotenv.config({ path: resolve(process.cwd(), '.env') });
 
-if (result.error) {
-  console.error('Erro ao carregar o arquivo .env:', result.error);
-  process.exit(1);
+// No Vercel, as variáveis são injetadas diretamente, então não falhamos se o .env não existir
+if (!process.env.DATABASE_URL && !process.env.VERCEL) {
+  console.warn('Aviso: DATABASE_URL não encontrada e não estamos no Vercel. Verifique seu arquivo .env');
 }
 
 import express, { type Request, Response, NextFunction } from "express";
@@ -110,7 +110,7 @@ const serverPromise = (async () => {
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
-  } else {
+  } else if (!process.env.VERCEL) {
     serveStatic(app);
   }
 

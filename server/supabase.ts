@@ -8,14 +8,18 @@ import dotenv from 'dotenv';
 // Carregar variáveis de ambiente
 dotenv.config();
 
-// Verificar se as variáveis de ambiente estão definidas
-console.log('Verificando variáveis de ambiente:');
-console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'Definido' : 'Não definido');
-console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? 'Definido' : 'Não definido');
-console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Definido' : 'Não definido');
+const { SUPABASE_URL, SUPABASE_ANON_KEY, DATABASE_URL } = process.env;
 
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY || !process.env.DATABASE_URL) {
-  throw new Error('SUPABASE_URL, SUPABASE_ANON_KEY e DATABASE_URL devem ser definidos nas variáveis de ambiente');
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !DATABASE_URL) {
+  console.error('❌ ERRO: Variáveis de ambiente faltando!');
+  console.error('SUPABASE_URL:', SUPABASE_URL ? '✅' : '❌');
+  console.error('SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? '✅' : '❌');
+  console.error('DATABASE_URL:', DATABASE_URL ? '✅' : '❌');
+
+  if (process.env.NODE_ENV === 'production') {
+    // No Vercel/Produção, não podemos continuar sem o DB
+    console.warn('Aviso: Continuando inicialização, mas as chamadas ao banco irão falhar.');
+  }
 }
 
 // Retorna informações de debug do banco e colunas da tabela projects
@@ -33,25 +37,32 @@ export async function getProjectsTableDebug() {
 
 // Criar cliente Supabase
 export const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  SUPABASE_URL || '',
+  SUPABASE_ANON_KEY || ''
 );
 
-// Criar cliente postgres-js
-const queryClient = postgres(process.env.DATABASE_URL);
+// Criar cliente postgres-js de forma segura
+const queryClient = (typeof DATABASE_URL === 'string' && DATABASE_URL.length > 0)
+  ? postgres(DATABASE_URL)
+  : null as any;
 
 // Exportar cliente Drizzle com o esquema
-export const db = drizzle(queryClient, { schema });
+export const db = queryClient
+  ? drizzle(queryClient, { schema })
+  : null as any;
 
 // Função para executar migrações
 export async function runMigrations() {
+  if (!db) {
+    console.error('❌ Ignorando migrações: DATABASE_URL não definida.');
+    return;
+  }
   try {
     console.log('Iniciando migrações do banco de dados...');
     await migrate(db, { migrationsFolder: './migrations' });
     console.log('Migrações concluídas com sucesso!');
   } catch (error) {
     console.error('Erro ao executar migrações:', error);
-    throw error;
   }
 }
 
@@ -73,7 +84,7 @@ export async function verifyDbConsistency() {
       console.warn("[DB] Aviso: tabela 'finance' NÃO existe neste banco. O endpoint /api/finance irá falhar.");
     } else {
       console.log("[DB] Ok: tabela 'finance' encontrada.");
-      
+
       // Verificar colunas principais
       const financeCols = await queryClient`
         SELECT column_name

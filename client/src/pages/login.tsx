@@ -58,35 +58,35 @@ export default function Login() {
   const onSubmit = async (data: LoginFormValues) => {
     console.log("🔐 Iniciando processo de login...", data);
     setIsLoading(true);
-    
+
     try {
       // Usar autenticação mock diretamente (para garantir funcionamento)
       console.log("✅ Autenticando com modo simplificado...");
-      
+
       const userData = {
         id: "1",
         username: data.username,
         name: "Administrador",
         role: "admin",
       };
-      
+
       console.log("👤 Dados do usuário:", userData);
-      
+
       // Chamar a função login do contexto
       login(userData);
       console.log("✅ Função login() chamada");
-      
+
       // Mostrar toast
       toast({
         title: "Login realizado com sucesso",
         description: `Bem-vindo, ${userData.name}!`,
       });
       console.log("✅ Toast exibido");
-      
+
       // Redirecionar imediatamente
       console.log("🔄 Redirecionando para /...");
       window.location.href = "/";
-      
+
     } catch (error: any) {
       console.error("❌ Erro no login:", error);
       toast({
@@ -123,11 +123,11 @@ export default function Login() {
               <p className="text-gray-600">Entre com suas credenciais para acessar</p>
             </div>
 
-            <form 
+            <form
               onSubmit={(e) => {
                 console.log("📝 Form submit event triggered");
                 handleSubmit(onSubmit)(e);
-              }} 
+              }}
               className="space-y-5"
             >
               {/* Username Field */}
@@ -144,8 +144,8 @@ export default function Login() {
                     placeholder="Digite seu usuário"
                     className={cn(
                       "pl-10 h-12 border-2 transition-all duration-200",
-                      errors.username 
-                        ? "border-red-500 focus:border-red-500" 
+                      errors.username
+                        ? "border-red-500 focus:border-red-500"
                         : "border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                     )}
                     {...register("username")}
@@ -174,8 +174,8 @@ export default function Login() {
                     placeholder="Digite sua senha"
                     className={cn(
                       "pl-10 pr-10 h-12 border-2 transition-all duration-200",
-                      errors.password 
-                        ? "border-red-500 focus:border-red-500" 
+                      errors.password
+                        ? "border-red-500 focus:border-red-500"
                         : "border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                     )}
                     {...register("password")}
@@ -203,11 +203,11 @@ export default function Login() {
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <input 
-                    type="checkbox" 
-                    id="rememberMe" 
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
                     className="h-4 w-4 rounded border-gray-300"
-                    {...register("rememberMe")} 
+                    {...register("rememberMe")}
                   />
                   <label
                     htmlFor="rememberMe"
@@ -222,9 +222,9 @@ export default function Login() {
               </div>
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200" 
+              <Button
+                type="submit"
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -243,32 +243,8 @@ export default function Login() {
 
             {/* Footer */}
             <div className="mt-6 text-center space-y-4">
-              {/* Botão de teste direto */}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  console.log("🧪 Teste de login direto...");
-                  const testUser = {
-                    id: "1",
-                    username: "admin",
-                    name: "Administrador",
-                    role: "admin",
-                  };
-                  login(testUser);
-                  toast({
-                    title: "Teste de Login",
-                    description: "Redirecionando...",
-                  });
-                  setTimeout(() => {
-                    window.location.href = "/";
-                  }, 500);
-                }}
-                className="w-full"
-              >
-                🧪 Testar Login Direto
-              </Button>
-              
+
+
               <p className="text-sm text-gray-500">
                 © {new Date().getFullYear()} VendaMax - Todos os direitos reservados
               </p>
