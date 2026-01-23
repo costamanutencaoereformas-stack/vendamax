@@ -265,11 +265,11 @@ export class SupabaseStorage implements IStorage {
           createdAt: new Date(),
         })
         .returning();
-      
+
       if (!result || result.length === 0) {
         throw new Error('Failed to create user');
       }
-      
+
       console.log('[DEBUG] User created successfully:', result[0].id);
       return result[0];
     } catch (error) {
@@ -298,11 +298,11 @@ export class SupabaseStorage implements IStorage {
       .set(customer)
       .where(eq(customers.id, id))
       .returning();
-    
+
     if (result.length === 0) {
       throw new Error('Customer not found');
     }
-    
+
     return result[0];
   }
 
@@ -385,17 +385,17 @@ export class SupabaseStorage implements IStorage {
     let code = (data as any).code;
     if (!code) {
       const prefix = data.entryType === 'RECEIVABLE' ? 'REC' : (data.entryType === 'PAYABLE' ? 'PAG' : 'CX');
-      
+
       // Get the count of existing entries of this type
       const countResult = await db
         .select({ count: sql<number>`count(*)` })
         .from(finance)
         .where(eq(finance.entryType, data.entryType));
-      
+
       const count = (countResult[0]?.count || 0) + 1;
       code = `${prefix}-${String(count).padStart(5, '0')}`;
     }
-    
+
     try {
       const result = await db
         .insert(finance)
@@ -613,11 +613,11 @@ export class SupabaseStorage implements IStorage {
       .set(supplier)
       .where(eq(suppliers.id, id))
       .returning();
-    
+
     if (result.length === 0) {
       throw new Error('Supplier not found');
     }
-    
+
     return result[0];
   }
 
@@ -646,11 +646,11 @@ export class SupabaseStorage implements IStorage {
       .set(category)
       .where(eq(categories.id, id))
       .returning();
-    
+
     if (result.length === 0) {
       throw new Error('Category not found');
     }
-    
+
     return result[0];
   }
 
@@ -679,11 +679,11 @@ export class SupabaseStorage implements IStorage {
       .set(segment)
       .where(eq(segments.id, id))
       .returning();
-    
+
     if (result.length === 0) {
       throw new Error('Segment not found');
     }
-    
+
     return result[0];
   }
 
@@ -840,11 +840,11 @@ export class SupabaseStorage implements IStorage {
     // Gerar número sequencial para o orçamento
     const allQuotes = await this.getQuotes();
     const quoteNumber = `ORC${String(allQuotes.length + 1).padStart(6, '0')}`;
-    
+
     const result = await db.insert(quotes)
       .values({ ...quote, number: quoteNumber })
       .returning();
-    
+
     return result[0];
   }
 
@@ -853,7 +853,7 @@ export class SupabaseStorage implements IStorage {
       .set(quote)
       .where(eq(quotes.id, id))
       .returning();
-    
+
     if (result.length === 0) {
       throw new Error('Quote not found');
     }
@@ -865,7 +865,7 @@ export class SupabaseStorage implements IStorage {
   async deleteQuote(id: string): Promise<boolean> {
     // Primeiro excluir os itens do orçamento
     await db.delete(quoteItems).where(eq(quoteItems.quoteId, id));
-    
+
     // Depois excluir o orçamento
     const result = await db.delete(quotes).where(eq(quotes.id, id)).returning();
     return result.length > 0;
@@ -893,11 +893,11 @@ export class SupabaseStorage implements IStorage {
         id: randomUUID(),
       })
       .returning();
-    
+
     if (!attachment) {
       throw new Error('Failed to add quote attachment');
     }
-    
+
     return attachment;
   }
 
@@ -906,7 +906,7 @@ export class SupabaseStorage implements IStorage {
       .delete(quoteAttachments)
       .where(eq(quoteAttachments.id, id))
       .returning();
-    
+
     return !!attachment;
   }
 
@@ -926,10 +926,10 @@ export class SupabaseStorage implements IStorage {
 
   async createQuoteItem(item: InsertQuoteItem): Promise<QuoteItem> {
     const result = await db.insert(quoteItems).values(item).returning();
-    
+
     // Atualizar o total do orçamento
     await this.updateQuoteTotals(item.quoteId);
-    
+
     return result[0];
   }
 
@@ -937,19 +937,19 @@ export class SupabaseStorage implements IStorage {
     const currentItem = await db.select()
       .from(quoteItems)
       .where(eq(quoteItems.id, id));
-    
+
     if (currentItem.length === 0) {
       throw new Error('Quote item not found');
     }
-    
+
     const result = await db.update(quoteItems)
       .set(item)
       .where(eq(quoteItems.id, id))
       .returning();
-    
+
     // Atualizar o total do orçamento
     await this.updateQuoteTotals(currentItem[0].quoteId);
-    
+
     return result[0];
   }
 
@@ -957,41 +957,41 @@ export class SupabaseStorage implements IStorage {
     const item = await db.select()
       .from(quoteItems)
       .where(eq(quoteItems.id, id));
-    
+
     if (item.length === 0) {
       return false;
     }
-    
+
     const quoteId = item[0].quoteId;
-    
+
     const result = await db.delete(quoteItems)
       .where(eq(quoteItems.id, id))
       .returning();
-    
+
     // Atualizar o total do orçamento
     await this.updateQuoteTotals(quoteId);
-    
+
     return result.length > 0;
   }
 
   // Função auxiliar para atualizar os totais do orçamento
   private async updateQuoteTotals(quoteId: string): Promise<void> {
     const items = await this.getQuoteItems(quoteId);
-    
+
     const subtotal = items.reduce((sum, item) => sum + Number(item.total), 0);
-    
+
     const quote = await this.getQuote(quoteId);
     if (!quote) return;
-    
+
     const discount = Number(quote.discount) || 0;
     const taxTotal = Number((quote as any).taxTotal) || 0;
     const shipping = Number((quote as any).shipping) || 0;
     const total = subtotal - discount + taxTotal + shipping;
-    
+
     // Drizzle decimal columns are represented as strings in TS; persist as strings
     const subtotalStr = subtotal.toFixed(2);
     const totalStr = total.toFixed(2);
-    
+
     await db.update(quotes)
       .set({ subtotal: subtotalStr, total: totalStr })
       .where(eq(quotes.id, quoteId));
@@ -1002,7 +1002,7 @@ export class SupabaseStorage implements IStorage {
     const result = await db.select().from(sales).where(eq(sales.number, number));
     return result[0];
   }
-  
+
   async getSales(): Promise<Sale[]> {
     return await db.select().from(sales).orderBy(desc(sales.createdAt));
   }
@@ -1016,23 +1016,23 @@ export class SupabaseStorage implements IStorage {
     // Gerar número sequencial para a venda
     const allSales = await this.getSales();
     const saleNumber = `VDA${String(allSales.length + 1).padStart(6, '0')}`;
-    
+
     // Extrair itens do payload se fornecidos
     const items = (sale as any).items || [];
     const saleData = { ...sale };
     delete (saleData as any).items; // Remover itens do payload da venda
-    
+
     const result = await db.insert(sales)
       .values({ ...saleData, number: saleNumber })
       .returning();
-    
+
     const created = result[0];
-    
+
     // Se há itens fornecidos no payload, criar eles primeiro
     if (items.length > 0) {
       try {
         console.log(`[createSale] Criando ${items.length} itens fornecidos para venda ${created.id}`);
-        
+
         for (const item of items) {
           await this.createSaleItem({
             saleId: created.id,
@@ -1044,7 +1044,7 @@ export class SupabaseStorage implements IStorage {
             total: item.total,
           });
         }
-        
+
         // Atualizar totais da venda
         await this.updateSaleTotals(created.id);
         console.log(`[createSale] Itens fornecidos criados com sucesso para venda ${created.id}`);
@@ -1059,7 +1059,7 @@ export class SupabaseStorage implements IStorage {
         const qItems = await this.getQuoteItems(created.quoteId);
         if (qItems.length > 0) {
           console.log(`[createSale] Copiando ${qItems.length} itens do orçamento ${created.quoteId} para venda ${created.id}`);
-          
+
           // Inserir itens correspondentes na venda usando createSaleItem para garantir movimentos de estoque
           for (const qi of qItems) {
             await this.createSaleItem({
@@ -1081,14 +1081,14 @@ export class SupabaseStorage implements IStorage {
         console.error('[createSale] Falha ao copiar itens do orçamento para a venda', e);
       }
     }
-    
+
     // Se a venda foi criada a partir de um orçamento, atualizar o status do orçamento
     if (sale.quoteId) {
       await db.update(quotes)
         .set({ status: 'CONVERTED' })
         .where(eq(quotes.id, sale.quoteId));
     }
-    
+
     return result[0];
   }
 
@@ -1097,18 +1097,18 @@ export class SupabaseStorage implements IStorage {
       .set(sale)
       .where(eq(sales.id, id))
       .returning();
-    
+
     if (result.length === 0) {
       throw new Error('Sale not found');
     }
-    
+
     return result[0];
   }
 
   async deleteSale(id: string): Promise<boolean> {
     // Primeiro excluir os itens da venda
     await db.delete(saleItems).where(eq(saleItems.saleId, id));
-    
+
     // Depois excluir a venda
     const result = await db.delete(sales).where(eq(sales.id, id)).returning();
     return result.length > 0;
@@ -1130,10 +1130,10 @@ export class SupabaseStorage implements IStorage {
 
   async createSaleItem(item: InsertSaleItem): Promise<SaleItem> {
     const result = await db.insert(saleItems).values(item).returning();
-    
+
     // Atualizar o total da venda
     await this.updateSaleTotals(item.saleId);
-    
+
     // Atualizar o estoque do produto somente quando houver productId (não é serviço)
     if (item.productId) {
       // Registrar movimento de saída no inventário (responsável por ajustar o estoque)
@@ -1145,7 +1145,7 @@ export class SupabaseStorage implements IStorage {
         userId: null
       });
     }
-    
+
     return result[0];
   }
 
@@ -1153,11 +1153,11 @@ export class SupabaseStorage implements IStorage {
     const currentItem = await db.select()
       .from(saleItems)
       .where(eq(saleItems.id, id));
-    
+
     if (currentItem.length === 0) {
       throw new Error('Sale item not found');
     }
-    
+
     // Se a quantidade foi alterada, registrar movimento no estoque (apenas para itens com produto)
     if (item.quantity !== undefined && item.quantity !== currentItem[0].quantity && currentItem[0].productId) {
       const quantityDiff = item.quantity - currentItem[0].quantity;
@@ -1170,15 +1170,15 @@ export class SupabaseStorage implements IStorage {
         userId: null
       });
     }
-    
+
     const result = await db.update(saleItems)
       .set(item)
       .where(eq(saleItems.id, id))
       .returning();
-    
+
     // Atualizar o total da venda
     await this.updateSaleTotals(currentItem[0].saleId);
-    
+
     return result[0];
   }
 
@@ -1186,13 +1186,13 @@ export class SupabaseStorage implements IStorage {
     const item = await db.select()
       .from(saleItems)
       .where(eq(saleItems.id, id));
-    
+
     if (item.length === 0) {
       return false;
     }
-    
+
     const saleId = item[0].saleId;
-    
+
     // Devolver o item ao estoque somente para itens de produto (via movimento de inventário)
     if (item[0].productId) {
       await this.createInventoryMovement({
@@ -1203,33 +1203,33 @@ export class SupabaseStorage implements IStorage {
         userId: null
       });
     }
-    
+
     const result = await db.delete(saleItems)
       .where(eq(saleItems.id, id))
       .returning();
-    
+
     // Atualizar o total da venda
     await this.updateSaleTotals(saleId);
-    
+
     return result.length > 0;
   }
 
   // Função auxiliar para atualizar os totais da venda
   private async updateSaleTotals(saleId: string): Promise<void> {
     const items = await this.getSaleItems(saleId);
-    
+
     const subtotal = items.reduce((sum, item) => sum + Number(item.total), 0);
-    
+
     const sale = await this.getSale(saleId);
     if (!sale) return;
-    
+
     const discount = Number(sale.discount) || 0;
     const total = subtotal - discount;
-    
+
     // Drizzle decimal columns are represented as strings in TS; persist as strings
     const subtotalStr = subtotal.toFixed(2);
     const totalStr = total.toFixed(2);
-    
+
     await db.update(sales)
       .set({ subtotal: subtotalStr, total: totalStr })
       .where(eq(sales.id, saleId));
@@ -1277,7 +1277,7 @@ export class SupabaseStorage implements IStorage {
     // Obter vendas do dia
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const salesResult = await this.getSales();
     const dailySales = salesResult
       .filter(sale => {
@@ -1287,23 +1287,23 @@ export class SupabaseStorage implements IStorage {
         return saleDate.getTime() === today.getTime() && sale.status === 'COMPLETED';
       })
       .reduce((sum, sale) => sum + Number(sale.total), 0);
-    
+
     // Obter orçamentos pendentes
     const quotesResult = await this.getQuotes();
     const pendingQuotes = quotesResult.filter(quote => quote.status === 'PENDING').length;
-    
+
     // Obter total de produtos
     const productsResult = await this.getProducts();
     const totalProducts = productsResult.length;
-    
+
     // Obter clientes ativos
     const customersResult = await this.getCustomers();
     const activeCustomers = customersResult.filter(customer => customer.isActive).length;
-    
+
     // Obter produtos com estoque baixo
     const lowStockResult = await this.getLowStockProducts();
     const lowStockItems = lowStockResult.length;
-    
+
     return {
       dailySales,
       pendingQuotes,
@@ -1399,9 +1399,9 @@ export class SupabaseStorage implements IStorage {
       .from(projects)
       .leftJoin(customers, eq(projects.customerId, customers.id))
       .where(eq(projects.id, id));
-    
+
     if (!result[0]) return undefined;
-    
+
     return {
       ...result[0],
       totalCost: null,
@@ -1549,7 +1549,7 @@ export class SupabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async setPurchaseRequestStatus(id: string, status: 'DRAFT'|'SUBMITTED'|'APPROVED'|'REJECTED'): Promise<PurchaseRequest> {
+  async setPurchaseRequestStatus(id: string, status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'): Promise<PurchaseRequest> {
     const result = await db.update(purchaseRequests).set({ status } as any).where(eq(purchaseRequests.id, id)).returning();
     if (!result.length) throw new Error('Purchase request not found');
     return result[0];
@@ -1611,11 +1611,10 @@ export class SupabaseStorage implements IStorage {
 
   // Notes
   async getNotes(userId?: string): Promise<Note[]> {
-    let query = db.select().from(notes);
-    if (userId) {
-      query = query.where(eq(notes.userId, userId));
-    }
-    return await query.orderBy(desc(notes.isPinned), desc(notes.updatedAt));
+    return await db.select()
+      .from(notes)
+      .where(userId ? eq(notes.userId, userId) : undefined)
+      .orderBy(desc(notes.isPinned), desc(notes.updatedAt));
   }
 
   async getNote(id: string): Promise<Note | undefined> {
@@ -1765,7 +1764,7 @@ export class SupabaseStorage implements IStorage {
     }
 
     await db.update(cashRegisters)
-      .set({ 
+      .set({
         currentBalance: newBalance.toFixed(2),
         expectedBalance: newBalance.toFixed(2),
       })

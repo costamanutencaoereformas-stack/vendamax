@@ -78,7 +78,7 @@ const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: FileFil
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   ];
-  
+
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -92,7 +92,7 @@ const uploadStorage = multer.diskStorage({
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
     const uploadDir = path.join(process.cwd(), 'uploads');
-    
+
     try {
       await fs.mkdir(uploadDir, { recursive: true });
       cb(null, uploadDir);
@@ -108,7 +108,7 @@ const uploadStorage = multer.diskStorage({
 });
 
 // Configure multer instance
-const upload = multer({ 
+const upload = multer({
   storage: uploadStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max file size
   fileFilter
@@ -266,35 +266,35 @@ function checkCashRegister(req: Request, res: Response, next: Function) {
 
     storage.getCurrentCashRegister().then(register => {
       if (!register) {
-        return res.status(400).json({ 
-          message: "Caixa não aberto", 
-          details: "É necessário abrir o caixa do dia antes de realizar vendas" 
+        return res.status(400).json({
+          message: "Caixa não aberto",
+          details: "É necessário abrir o caixa do dia antes de realizar vendas"
         });
 
-  // (Excel routes removed from this block)
+        // (Excel routes removed from this block)
 
-  // (moved) Excel routes placed below, outside this middleware
+        // (moved) Excel routes placed below, outside this middleware
 
-  
+
 
       }
 
-      const registerDate = new Date(register.openedAt);
+      const registerDate = new Date(register.openedAt || new Date());
       registerDate.setHours(0, 0, 0, 0);
 
       // Check if register is from previous day
       if (registerDate < today) {
-        return res.status(400).json({ 
-          message: "Caixa do dia anterior aberto", 
-          details: "É necessário fechar o caixa do dia anterior antes de abrir um novo" 
+        return res.status(400).json({
+          message: "Caixa do dia anterior aberto",
+          details: "É necessário fechar o caixa do dia anterior antes de abrir um novo"
         });
       }
 
       // Check if register is from future day (shouldn't happen)
       if (registerDate > today) {
-        return res.status(400).json({ 
-          message: "Caixa de data futura aberto", 
-          details: "Data de abertura do caixa é inválida" 
+        return res.status(400).json({
+          message: "Caixa de data futura aberto",
+          details: "Data de abertura do caixa é inválida"
         });
       }
 
@@ -320,7 +320,7 @@ async function ensureAdminUser() {
   try {
     // Verificar se já existe um usuário admin
     const existingAdmin = await storage.getUserByUsername('admin');
-    
+
     if (!existingAdmin) {
       // Criar usuário admin padrão com todos os campos obrigatórios
       await storage.createUser({
@@ -333,7 +333,7 @@ async function ensureAdminUser() {
         isActive: true
       } as any);
 
-  
+
 
       console.log('Usuário administrador criado com sucesso!');
     }
@@ -365,7 +365,7 @@ async function loadSampleData() {
     // Verificar se as categorias já existem
     const existingCategories = await storage.getCategories();
     let createdCategories = [];
-    
+
     if (existingCategories.length === 0) {
       // Criar categorias se não existirem
       for (const category of categories) {
@@ -544,7 +544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   } catch (e) {
     console.warn('[startup] ensureProductExtraColumns non-fatal:', e as any);
   }
-  
+
   // Carregamento automático de dados de exemplo desabilitado
   // Caso necessário, execute o script manual de seed: `npm run seed:all`
 
@@ -561,18 +561,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const { username, password } = loginSchema.parse(req.body);
-      
+
       // Buscar usuário pelo nome de usuário
       const user = await storage.getUserByUsername(username);
-      
+
       // Verificar se o usuário existe e a senha está correta
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Usuário ou senha inválidos" });
       }
-      
+
       // Retornar dados do usuário (exceto a senha)
       const { password: _, ...userWithoutPassword } = user;
-      
+
       res.json(userWithoutPassword);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -600,7 +600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return userWithoutPassword;
         })
       );
-      
+
       res.json(users);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -611,19 +611,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users", async (req: Request, res: Response) => {
     try {
       const userData = userSchema.parse(req.body);
-      
+
       // Verificar se já existe um usuário com o mesmo username
       const existingUser = await storage.getUserByUsername(userData.username);
       if (existingUser) {
         return res.status(400).json({ message: "Nome de usuário já existe" });
       }
-      
+
       // Criar o usuário
       const newUser = await storage.createUser(userData);
-      
+
       // Remover senha dos dados retornados
       const { password, ...userWithoutPassword } = newUser;
-      
+
       res.status(201).json(userWithoutPassword);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -739,16 +739,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerId = req.params.id;
       const sales = await storage.getSales();
       const customerSales = sales.filter((sale: any) => sale.customerId === customerId);
-      
+
       const totalSales = customerSales.reduce((sum: number, sale: any) => {
         return sum + (parseFloat(sale.total) || 0);
       }, 0);
-      
+
       const completedSales = customerSales.filter((sale: any) => sale.status === 'COMPLETED');
       const totalCompletedSales = completedSales.reduce((sum: number, sale: any) => {
         return sum + (parseFloat(sale.total) || 0);
       }, 0);
-      
+
       res.json({
         totalSales,
         totalCompletedSales,
@@ -772,7 +772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priority: 'high' | 'medium' | 'low';
       }> = [];
       const today = new Date();
-      
+
       // Get expired quotes
       const quotes = await storage.getQuotes();
       const expiredQuotes = (quotes || []).filter((quote: any) => {
@@ -781,7 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (isNaN(validUntil.getTime())) return false;
         return validUntil < today && quote.status === 'PENDING';
       });
-      
+
       expiredQuotes.forEach((quote: any) => {
         notifications.push({
           id: `quote-${quote.id}`,
@@ -792,7 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           priority: 'high'
         });
       });
-      
+
       // Get overdue finance entries
       const financeEntries = await storage.getFinanceEntries();
       const overdueEntries = (financeEntries || []).filter((entry: any) => {
@@ -801,7 +801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (isNaN(dueDate.getTime())) return false;
         return dueDate < today;
       });
-      
+
       overdueEntries.forEach((entry: any) => {
         const isReceivable = entry.entryType === 'RECEIVABLE';
         notifications.push({
@@ -813,7 +813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           priority: 'high'
         });
       });
-      
+
       // Get today's appointments
       const appointments = await storage.getAppointments();
       const todayAppointments = (appointments || []).filter((appointment: any) => {
@@ -822,7 +822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (isNaN(appointmentDate.getTime())) return false;
         return appointmentDate.toDateString() === today.toDateString() && appointment.status === 'PENDING';
       });
-      
+
       todayAppointments.forEach((appointment: any) => {
         notifications.push({
           id: `appointment-${appointment.id}`,
@@ -833,7 +833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           priority: 'medium'
         });
       });
-      
+
       // Sort by priority and date
       notifications.sort((a, b) => {
         const priorityOrder = { high: 3, medium: 2, low: 1 };
@@ -842,13 +842,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
-      
+
       res.json(notifications);
     } catch (error: any) {
       console.error("Erro ao buscar notificações:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Erro interno ao buscar notificações",
-        details: error.message 
+        details: error.message
       });
     }
   });
@@ -929,7 +929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.json(data);
           }
         }
-      } catch {}
+      } catch { }
       // Fallback BrasilAPI
       try {
         const resp2 = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
@@ -937,7 +937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const data2 = await resp2.json();
           return res.json(data2);
         }
-      } catch {}
+      } catch { }
       return res.status(404).json({ message: "CNPJ não encontrado" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -967,8 +967,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/suppliers", async (req, res) => {
     try {
       const body: any = { ...req.body };
-      const rawCnpj: string | undefined = (body.cnpj || "").toString();
-      const cleanCnpj = rawCnpj.replace(/[^\d]/g, "");
+      const rawCnpj = (body.cnpj || "").toString();
+      const cleanCnpj = (rawCnpj || "").replace(/[^\d]/g, "");
 
       // Auto-enrich from CNPJ when name is missing or when explicit flag is provided
       if (cleanCnpj.length === 14 && (!body.name || body.__enrichFromCnpj === true)) {
@@ -998,7 +998,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               };
             }
           }
-        } catch {}
+        } catch { }
 
         // Fallback to BrasilAPI
         if (!enriched) {
@@ -1021,7 +1021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 zipCode: d2.cep || undefined,
               };
             }
-          } catch {}
+          } catch { }
         }
 
         if (enriched) {
@@ -1464,7 +1464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const product = await storage.getProduct(productId);
       if (!product) {
         // remove uploaded file
-        await fs.unlink(file.path).catch(() => {});
+        await fs.unlink(file.path).catch(() => { });
         return res.status(404).json({ message: 'Product not found' });
       }
 
@@ -1475,7 +1475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ imageUrl, product: updated });
     } catch (error: any) {
       if (req.file) {
-        await fs.unlink((req.file as any).path).catch(() => {});
+        await fs.unlink((req.file as any).path).catch(() => { });
       }
       res.status(400).json({ message: error.message });
     }
@@ -1767,23 +1767,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
-  
+
   // Atualizar itens de uma venda
   app.put("/api/sales/:id/items", async (req, res) => {
     try {
       const saleId = req.params.id;
-  const { items } = req.body as { items: any[] };
-      
+      const { items } = req.body as { items: any[] };
+
       // Verificar se a venda existe
       const sale = await storage.getSale(saleId);
       if (!sale) return res.status(404).json({ message: 'Venda não encontrada' });
-      
+
       // Obter itens atuais da venda
       const currentItems = await storage.getSaleItems(saleId);
-      
+
       // Processar cada item da requisição
       for (const item of items) {
-  if (item.id && item.id.startsWith('temp-')) {
+        if (item.id && item.id.startsWith('temp-')) {
           // É um novo item, remover o ID temporário
           const { id, ...newItem } = item;
           // Coerce numeric fields
@@ -1794,12 +1794,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const q = parseInt(newItem.quantity, 10);
             if (!Number.isNaN(q)) newItem.quantity = q;
           }
-          
+
           // Validar presença de produto ou descrição de serviço
           if (!newItem.productId && !newItem.serviceDescription) {
             return res.status(400).json({ message: 'Informe um produto ou uma descrição de serviço.' });
           }
-          
+
           // Criar novo item
           await storage.createSaleItem({
             ...newItem,
@@ -1819,20 +1819,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const q = parseInt(updateData.quantity, 10);
               if (!Number.isNaN(q)) updateData.quantity = q;
             }
-            
+
             await storage.updateSaleItem(id, updateData);
           }
         }
       }
-      
+
       // Remover itens que não estão mais na lista
-  const newItemIds = items.filter((item: any) => !item.id.startsWith('temp-')).map((item: any) => item.id);
+      const newItemIds = items.filter((item: any) => !item.id.startsWith('temp-')).map((item: any) => item.id);
       for (const currentItem of currentItems) {
         if (!newItemIds.includes(currentItem.id)) {
           await storage.deleteSaleItem(currentItem.id);
         }
       }
-      
+
       // Retornar itens atualizados
       const updatedItems = await storage.getSaleItems(saleId);
       res.json(updatedItems);
@@ -1873,12 +1873,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const valueRaw = (req.body as any)?.serviceCost;
       // Hard-lock: once persisted (>0), do not allow further edits via this endpoint
       try {
-  const saleItem = await storage.getSaleItemById?.(id);
+        const saleItem = await storage.getSaleItemById?.(id);
         const currentPersisted = saleItem ? Number((saleItem as any).serviceCost || 0) : 0;
         if (currentPersisted > 0) {
           return res.status(409).json({ message: 'Custo de serviço já consolidado para este item.' });
         }
-      } catch {}
+      } catch { }
       // Allow null to clear
       if (valueRaw === null) {
         return res.status(409).json({ message: 'Não é permitido limpar custo de serviço consolidado.' });
@@ -2043,7 +2043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const term = (searchTerm || '').toLowerCase();
         list = list.filter((qq: any) => {
           return (qq.number || '').toLowerCase().includes(term) ||
-                 (qq.notes || '').toLowerCase().includes(term);
+            (qq.notes || '').toLowerCase().includes(term);
         });
       }
 
@@ -2069,7 +2069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (validFrom && vu < new Date(validFrom)) return false;
           if (validTo) {
             const end = new Date(validTo);
-            end.setHours(23,59,59,999);
+            end.setHours(23, 59, 59, 999);
             if (vu > end) return false;
           }
           return true;
@@ -2083,7 +2083,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (createdFrom && c < new Date(createdFrom)) return false;
           if (createdTo) {
             const end = new Date(createdTo);
-            end.setHours(23,59,59,999);
+            end.setHours(23, 59, 59, 999);
             if (c > end) return false;
           }
           return true;
@@ -2215,8 +2215,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/quotes/:id/attachments", 
-    upload.single('file'), 
+  app.post("/api/quotes/:id/attachments",
+    upload.single('file'),
     async (req, res) => {
       try {
         if (!req.file) {
@@ -2225,7 +2225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const quoteId = req.params.id;
         const file = req.file;
-        
+
         // Verificar se o orçamento existe
         const quote = await storage.getQuote(quoteId);
         if (!quote) {
@@ -2276,7 +2276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Remover o registro do banco de dados
       await storage.deleteQuoteAttachment(attachment.id);
-      
+
       res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2484,8 +2484,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Status transitions
   app.post("/api/purchase-requests/:id/status", async (req, res) => {
     try {
-      const status = (req.body?.status as string) as 'DRAFT'|'SUBMITTED'|'APPROVED'|'REJECTED';
-      if (!status || !['DRAFT','SUBMITTED','APPROVED','REJECTED'].includes(status)) {
+      const status = (req.body?.status as string) as 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+      if (!status || !['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED'].includes(status)) {
         return res.status(400).json({ message: 'Invalid status' });
       }
       const updated = await storage.setPurchaseRequestStatus(req.params.id, status);
@@ -2581,9 +2581,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerId = (q.customerId || '').toString() || undefined;
       const projectId = (q.projectId || '').toString() || undefined;
       const productId = (q.productId || '').toString() || undefined;
-      const serviceCostMode = (q.serviceCostMode || 'expenses') as 'expenses'|'tasks'|'hybrid';
+      const serviceCostMode = (q.serviceCostMode || 'expenses') as 'expenses' | 'tasks' | 'hybrid';
       const hourlyRate = Number(q.hourlyRate || 0) || 0;
-      const groupBy = (q.groupBy || 'none') as 'none'|'sale'|'customer'|'project'|'product'|'type';
+      const groupBy = (q.groupBy || 'none') as 'none' | 'sale' | 'customer' | 'project' | 'product' | 'type';
 
       const withinRange = (d?: any) => {
         if (!d) return true;
@@ -2593,7 +2593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (end) {
           // end inclusive by day (till 23:59:59)
           const e = new Date(end);
-          e.setHours(23,59,59,999);
+          e.setHours(23, 59, 59, 999);
           if (dt > e) return false;
         }
         return true;
@@ -2841,7 +2841,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: validationError.message });
       }
       const created = await storage.createFinanceEntry(data);
-      
+
       // Se for uma conta a pagar (PAYABLE) vinculada a um projeto, criar despesa automaticamente
       if (created.entryType === 'PAYABLE' && created.project) {
         try {
@@ -2857,7 +2857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               category: created.category || 'Geral',
               supplierId: created.supplierId || null,
             };
-            
+
             await storage.createProjectExpense(expenseData);
             console.log(`Despesa criada automaticamente no projeto ${created.project} para lançamento ${created.id}`);
           }
@@ -2866,7 +2866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Não falhar a criação do lançamento se houver erro na despesa
         }
       }
-      
+
       res.status(201).json(created);
     } catch (error: any) {
       console.error('/api/finance POST: Erro:', error);
@@ -2925,26 +2925,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const body: any = { ...req.body };
       const d = parseDateSafe(body.date);
       if (d) body.date = d;
-      
+
       // Buscar o lançamento antes de marcar como pago
       const financeEntry = await storage.getFinanceEntry(req.params.id);
-      
+
       const result = await storage.markPaidWithCashMovement(req.params.id, {
         date: body.date || new Date(),
         paymentMethod: body.paymentMethod ?? null,
         notes: body.notes ?? null,
       });
-      
+
       // Se for uma conta a pagar vinculada a um projeto, atualizar a despesa
       if (financeEntry && financeEntry.entryType === 'PAYABLE' && financeEntry.project) {
         try {
           // Buscar despesas do projeto que estão vinculadas a este lançamento (pela tag [FIN:id])
           const projectExpenses = await storage.getProjectExpenses(financeEntry.project);
           const financeTag = `[FIN:${financeEntry.id}]`;
-          const linkedExpense = projectExpenses.find((exp: any) => 
+          const linkedExpense = projectExpenses.find((exp: any) =>
             exp.description && exp.description.includes(financeTag)
           );
-          
+
           if (linkedExpense) {
             // Atualizar a despesa para status concluído
             await storage.updateProjectExpense(linkedExpense.id, {
@@ -2957,14 +2957,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Não falhar o pagamento se houver erro na atualização da despesa
         }
       }
-      
+
       res.json(result);
     } catch (error: any) {
       const status = error.message?.includes('not found') ? 404 : 400;
       res.status(status).json({ message: error.message });
     }
   });
-  
+
   // Marcar lançamento como concluído
   app.post("/api/finance/:id/mark-completed", async (req, res) => {
     try {
@@ -2974,7 +2974,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!entry) {
         return res.status(404).json({ message: "Lançamento não encontrado" });
       }
-      
+
       const updated = await storage.updateFinanceEntry(req.params.id, { status: 'COMPLETED' as any });
       res.json(updated);
     } catch (error: any) {
@@ -3270,7 +3270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: error.message });
     }
   });
-  
+
   // Marcar despesa como concluída
   app.post("/api/projects/:projectId/expenses/:expenseId/mark-completed", async (req, res) => {
     try {
@@ -3445,7 +3445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Optionally, try to remove the file from disk if path is under uploads
       try {
         // We don't have the URL here; client can ignore leftover files, or we could fetch the doc first if necessary.
-      } catch {}
+      } catch { }
       res.status(204).send();
     } catch (error: any) {
       const status = error.message?.includes('not found') ? 404 : 400;
@@ -3539,7 +3539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!sale) return res.status(404).json({ message: 'Venda não encontrada' });
 
       if (sale.status !== 'COMPLETED') {
-        return res.status(409).json({ 
+        return res.status(409).json({
           message: 'Venda não está CONCLUÍDA; finalize primeiro.',
           errorCode: 'SALE_NOT_COMPLETED'
         });
@@ -3594,7 +3594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const sale of completed) {
         if (existingBySaleId.has((sale as any).id)) continue;
         const customer = await storage.getCustomer((sale as any).customerId);
-        
+
         const created = await storage.createFinanceEntry({
           entryType: 'RECEIVABLE' as any,
           status: 'OPEN' as any,
@@ -3698,10 +3698,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const xmlContent = file.buffer.toString('utf-8');
-      
+
       // Validações básicas do XML
       if (!xmlContent.includes('<?xml') && !xmlContent.includes('<nfeProc') && !xmlContent.includes('<NFe')) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: "Arquivo não parece ser um XML válido de NFe",
           details: "O arquivo deve conter tags XML válidas e estrutura de NFe"
         });
@@ -3722,7 +3722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stack: error.stack,
         timestamp: new Date().toISOString()
       });
-      
+
       // Mensagens de erro mais específicas
       let userMessage = 'Erro ao processar XML da NFe';
       if (error.message.includes('não é uma NFe válida')) {
@@ -3734,8 +3734,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (error.message.includes('Formato inválido')) {
         userMessage = 'Formato do XML inválido. Verifique se o arquivo não está corrompido.';
       }
-      
-      res.status(400).json({ 
+
+      res.status(400).json({
         message: userMessage,
         technicalDetails: error.message,
         errorCode: 'XML_PARSE_ERROR'
@@ -3747,7 +3747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/xml/import-products", async (req, res) => {
     try {
       const { supplier, products, nfeNumber } = req.body;
-      
+
       if (!supplier || !products || !Array.isArray(products)) {
         return res.status(400).json({ message: "Dados inválidos para importação" });
       }
@@ -3778,7 +3778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verificar se o fornecedor já existe pelo CNPJ
       const existingSuppliers = await storage.getSuppliers();
-      const existingSupplier = existingSuppliers.find((s: any) => 
+      const existingSupplier = existingSuppliers.find((s: any) =>
         s.cnpj && s.cnpj.replace(/[^\d]/g, '') === supplier.cnpj.replace(/[^\d]/g, '')
       );
 
@@ -3862,7 +3862,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } catch (mapErr) {
             console.warn(`[XML Import] Falha ao mapear produto-fornecedor para ${created.code}:`, mapErr);
           }
-          
+
           // Registrar movimento de ENTRADA no estoque para o produto
           const qty = (product.currentStock && Number(product.currentStock) > 0)
             ? Number(product.currentStock)

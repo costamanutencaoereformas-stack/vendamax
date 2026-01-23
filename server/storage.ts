@@ -1,5 +1,5 @@
-import { 
-  type User, 
+import {
+  type User,
   type InsertUser,
   type Customer,
   type InsertCustomer,
@@ -54,35 +54,35 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   // Customers
   getCustomers(): Promise<Customer[]>;
   getCustomer(id: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, customer: Partial<InsertCustomer>): Promise<Customer>;
   deleteCustomer(id: string): Promise<boolean>;
-  
+
   // Suppliers
   getSuppliers(): Promise<Supplier[]>;
   getSupplier(id: string): Promise<Supplier | undefined>;
   createSupplier(supplier: InsertSupplier): Promise<Supplier>;
   updateSupplier(id: string, supplier: Partial<InsertSupplier>): Promise<Supplier>;
   deleteSupplier(id: string): Promise<boolean>;
-  
+
   // Categories
   getCategories(): Promise<Category[]>;
   getCategory(id: string): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category>;
   deleteCategory(id: string): Promise<boolean>;
-  
+
   // Segments
   getSegments(): Promise<Segment[]>;
   getSegment(id: string): Promise<Segment | undefined>;
   createSegment(segment: InsertSegment): Promise<Segment>;
   updateSegment(id: string, segment: Partial<InsertSegment>): Promise<Segment>;
   deleteSegment(id: string): Promise<boolean>;
-  
+
   // Products
   getProducts(): Promise<Product[]>;
   getProduct(id: string): Promise<Product | undefined>;
@@ -90,7 +90,7 @@ export interface IStorage {
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product>;
   deleteProduct(id: string): Promise<boolean>;
   getLowStockProducts(): Promise<Product[]>;
-  
+
   // Inventory
   getInventoryMovement(id: string): Promise<Inventory | undefined>;
   getInventoryMovements(): Promise<Inventory[]>;
@@ -98,7 +98,7 @@ export interface IStorage {
   createInventoryMovement(movement: InsertInventory): Promise<Inventory>;
   updateInventoryMovement(id: string, movement: Partial<InsertInventory>): Promise<Inventory>;
   deleteInventoryMovement(id: string): Promise<boolean>;
-  
+
   // Quotes
   getQuotes(): Promise<Quote[]>;
   getQuote(id: string): Promise<Quote | undefined>;
@@ -106,14 +106,14 @@ export interface IStorage {
   createQuote(quote: InsertQuote): Promise<Quote>;
   updateQuote(id: string, quote: Partial<InsertQuote>): Promise<Quote>;
   deleteQuote(id: string): Promise<boolean>;
-  
+
   // Quote Items
   getQuoteItems(quoteId: string): Promise<QuoteItem[]>;
   getQuoteItemById(id: string): Promise<QuoteItem | undefined>;
   createQuoteItem(item: InsertQuoteItem): Promise<QuoteItem>;
   updateQuoteItem(id: string, item: Partial<InsertQuoteItem>): Promise<QuoteItem>;
   deleteQuoteItem(id: string): Promise<boolean>;
-  
+
   // Sales
   getSales(): Promise<Sale[]>;
   getSale(id: string): Promise<Sale | undefined>;
@@ -121,18 +121,18 @@ export interface IStorage {
   createSale(sale: InsertSale): Promise<Sale>;
   updateSale(id: string, sale: Partial<InsertSale>): Promise<Sale>;
   deleteSale(id: string): Promise<boolean>;
-  
+
   // Sale Items
   getSaleItems(saleId: string): Promise<SaleItem[]>;
   getSaleItemById(id: string): Promise<SaleItem | undefined>;
   createSaleItem(item: InsertSaleItem): Promise<SaleItem>;
   updateSaleItem(id: string, item: Partial<InsertSaleItem>): Promise<SaleItem>;
   deleteSaleItem(id: string): Promise<boolean>;
-  
+
   // Appointments (Agenda)
   getAppointments(): Promise<Appointment[]>;
   getAppointment(id: string): Promise<Appointment | undefined>;
-  createAppointment(a: InsertAppointment): Promise<Appointment>; 
+  createAppointment(a: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: string, a: Partial<InsertAppointment>): Promise<Appointment>;
   deleteAppointment(id: string): Promise<boolean>;
 
@@ -143,7 +143,7 @@ export interface IStorage {
   updateFinanceEntry(id: string, data: Partial<InsertFinance>): Promise<Finance>;
   deleteFinanceEntry(id: string): Promise<boolean>;
   markPaidWithCashMovement(id: string, payload: { date: Date; paymentMethod?: string | null; notes?: string | null }): Promise<{ updated: Finance; cash: Finance }>;
-  
+
   // Dashboard metrics
   getDashboardMetrics(): Promise<{
     dailySales: number;
@@ -210,7 +210,7 @@ export interface IStorage {
   addPurchaseRequestItem(data: import("@shared/schema").InsertPurchaseRequestItem): Promise<import("@shared/schema").PurchaseRequestItem>;
   updatePurchaseRequestItem(id: string, data: Partial<import("@shared/schema").InsertPurchaseRequestItem>): Promise<import("@shared/schema").PurchaseRequestItem>;
   removePurchaseRequestItem(id: string): Promise<boolean>;
-  setPurchaseRequestStatus(id: string, status: 'DRAFT'|'SUBMITTED'|'APPROVED'|'REJECTED'): Promise<import("@shared/schema").PurchaseRequest>;
+  setPurchaseRequestStatus(id: string, status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'): Promise<import("@shared/schema").PurchaseRequest>;
 
   // Cash Register
   getCurrentCashRegister?(): Promise<CashRegister | undefined>;
@@ -268,7 +268,7 @@ export class MemStorage {
     this.purchaseRequestItems = new Map();
     this.contracts = new Map();
     this.contractDocuments = new Map();
-    
+
     // Initialize with default admin user
     this.initializeDefaultData();
   }
@@ -356,6 +356,8 @@ export class MemStorage {
       responsible: (insertCustomer as any).responsible ?? null,
       segment: (insertCustomer as any).segment ?? null,
       observations: (insertCustomer as any).observations ?? null,
+      stateRegistration: (insertCustomer as any).stateRegistration ?? null,
+      stateRegistrationExempt: (insertCustomer as any).stateRegistrationExempt ?? false,
       isActive: insertCustomer.isActive ?? true,
       classification: insertCustomer.classification ?? 'REGULAR',
       createdAt: new Date()
@@ -367,7 +369,7 @@ export class MemStorage {
   async updateCustomer(id: string, customerData: Partial<InsertCustomer>): Promise<Customer> {
     const existing = this.customers.get(id);
     if (!existing) throw new Error("Customer not found");
-    
+
     const updated: Customer = { ...existing, ...customerData };
     this.customers.set(id, updated);
     return updated;
@@ -410,7 +412,7 @@ export class MemStorage {
   async updateSupplier(id: string, supplierData: Partial<InsertSupplier>): Promise<Supplier> {
     const existing = this.suppliers.get(id);
     if (!existing) throw new Error("Supplier not found");
-    
+
     const updated: Supplier = { ...existing, ...supplierData };
     this.suppliers.set(id, updated);
     return updated;
@@ -444,7 +446,7 @@ export class MemStorage {
   async updateCategory(id: string, categoryData: Partial<InsertCategory>): Promise<Category> {
     const existing = this.categories.get(id);
     if (!existing) throw new Error("Category not found");
-    
+
     const updated: Category = { ...existing, ...categoryData };
     this.categories.set(id, updated);
     return updated;
@@ -484,6 +486,8 @@ export class MemStorage {
       supplierId: insertProduct.supplierId ?? null,
       imageUrl: (insertProduct as any).imageUrl ?? null,
       unit: insertProduct.unit ?? 'UN',
+      brand: (insertProduct as any).brand ?? null,
+      ncm: (insertProduct as any).ncm ?? null,
       costPrice: insertProduct.costPrice,
       salePrice: insertProduct.salePrice,
       currentStock: insertProduct.currentStock ?? 0,
@@ -499,7 +503,7 @@ export class MemStorage {
   async updateProduct(id: string, productData: Partial<InsertProduct>): Promise<Product> {
     const existing = this.products.get(id);
     if (!existing) throw new Error("Product not found");
-    
+
     const updated: Product = { ...existing, ...productData, imageUrl: (productData as any).imageUrl ?? existing.imageUrl };
     this.products.set(id, updated);
     return updated;
@@ -511,9 +515,9 @@ export class MemStorage {
 
   async getLowStockProducts(): Promise<Product[]> {
     return Array.from(this.products.values()).filter(
-      product => product.currentStock !== null && 
-                 product.minimumStock !== null && 
-                 product.currentStock <= product.minimumStock
+      product => product.currentStock !== null &&
+        product.minimumStock !== null &&
+        product.currentStock <= product.minimumStock
     );
   }
 
@@ -544,13 +548,13 @@ export class MemStorage {
       createdAt: new Date()
     };
     this.inventory.set(id, movement);
-    
+
     // Update product stock
     const product = this.products.get(insertInventory.productId);
     if (product) {
       const currentStock = product.currentStock || 0;
       let newStock = currentStock;
-      
+
       if (insertInventory.type === "IN") {
         newStock += insertInventory.quantity;
       } else if (insertInventory.type === "OUT") {
@@ -558,13 +562,13 @@ export class MemStorage {
       } else if (insertInventory.type === "ADJUSTMENT") {
         newStock = insertInventory.quantity;
       }
-      
+
       this.products.set(insertInventory.productId, {
         ...product,
         currentStock: Math.max(0, newStock)
       });
     }
-    
+
     return movement;
   }
 
@@ -664,7 +668,7 @@ export class MemStorage {
   async updateQuote(id: string, quoteData: Partial<InsertQuote>): Promise<Quote> {
     const existing = this.quotes.get(id);
     if (!existing) throw new Error("Quote not found");
-    
+
     const updated: Quote = { ...existing, ...quoteData };
     this.quotes.set(id, updated);
     return updated;
@@ -704,7 +708,7 @@ export class MemStorage {
   async updateQuoteItem(id: string, itemData: Partial<InsertQuoteItem>): Promise<QuoteItem> {
     const existing = this.quoteItems.get(id);
     if (!existing) throw new Error("Quote item not found");
-    
+
     const updated: QuoteItem = { ...existing, ...itemData };
     this.quoteItems.set(id, updated);
     return updated;
@@ -732,12 +736,12 @@ export class MemStorage {
 
   async createSale(insertSale: InsertSale): Promise<Sale> {
     const id = randomUUID();
-    
+
     // Extrair itens do payload se fornecidos
     const items = (insertSale as any).items || [];
     const saleData = { ...insertSale };
     delete (saleData as any).items; // Remover itens do payload da venda
-    
+
     const sale: Sale = {
       id,
       number: saleData.number,
@@ -755,12 +759,12 @@ export class MemStorage {
       createdAt: new Date()
     };
     this.sales.set(id, sale);
-    
+
     // Se há itens fornecidos no payload, criar eles primeiro
     if (items.length > 0) {
       try {
         console.log(`[createSale] Criando ${items.length} itens fornecidos para venda ${id}`);
-        
+
         for (const item of items) {
           await this.createSaleItem({
             saleId: id,
@@ -772,7 +776,7 @@ export class MemStorage {
             total: item.total,
           });
         }
-        
+
         console.log(`[createSale] Itens fornecidos criados com sucesso para venda ${id}`);
       } catch (e) {
         console.error('[createSale] Falha ao criar itens fornecidos para a venda', e);
@@ -785,7 +789,7 @@ export class MemStorage {
         const qItems = await this.getQuoteItems(sale.quoteId);
         if (qItems.length > 0) {
           console.log(`[createSale] Copiando ${qItems.length} itens do orçamento ${sale.quoteId} para venda ${id}`);
-          
+
           for (const qi of qItems) {
             await this.createSaleItem({
               saleId: id,
@@ -795,9 +799,10 @@ export class MemStorage {
               unitPrice: qi.unitPrice,
               discount: qi.discount ?? '0',
               total: qi.total,
+              serviceCost: (qi as any).serviceCost ?? null,
             });
           }
-          
+
           console.log(`[createSale] Itens copiados com sucesso para venda ${id}`);
         }
       } catch (e) {
@@ -805,14 +810,14 @@ export class MemStorage {
         // Não falhar a criação da venda se a cópia de itens falhar
       }
     }
-    
+
     return sale;
   }
 
   async updateSale(id: string, saleData: Partial<InsertSale>): Promise<Sale> {
     const existing = this.sales.get(id);
     if (!existing) throw new Error("Sale not found");
-    
+
     const updated: Sale = { ...existing, ...saleData };
     this.sales.set(id, updated);
     return updated;
@@ -843,7 +848,8 @@ export class MemStorage {
       quantity: insertSaleItem.quantity,
       unitPrice: insertSaleItem.unitPrice,
       discount: insertSaleItem.discount ?? '0',
-      total: insertSaleItem.total
+      total: insertSaleItem.total,
+      serviceCost: (insertSaleItem as any).serviceCost ?? null
     };
     this.saleItems.set(id, item);
     return item;
@@ -852,7 +858,7 @@ export class MemStorage {
   async updateSaleItem(id: string, itemData: Partial<InsertSaleItem>): Promise<SaleItem> {
     const existing = this.saleItems.get(id);
     if (!existing) throw new Error("Sale item not found");
-    
+
     const updated: SaleItem = { ...existing, ...itemData };
     this.saleItems.set(id, updated);
     return updated;
@@ -971,7 +977,7 @@ export class MemStorage {
   async getQuoteAttachments(quoteId: string): Promise<import("@shared/schema").QuoteAttachment[]> {
     return Array.from(this.quoteAttachments.values())
       .filter(attachment => attachment.quoteId === quoteId)
-      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+      .sort((a, b) => new Date(b.uploadedAt || 0).getTime() - new Date(a.uploadedAt || 0).getTime());
   }
 
   async getQuoteAttachment(id: string): Promise<import("@shared/schema").QuoteAttachment | undefined> {
@@ -996,7 +1002,7 @@ export class MemStorage {
 
   // Purchase Requests
   async getPurchaseRequests(): Promise<import("@shared/schema").PurchaseRequest[]> {
-    return Array.from(this.purchaseRequests.values()).sort((a, b) => +new Date(b.createdAt!) - +new Date(a.createdAt!));
+    return Array.from(this.purchaseRequests.values()).sort((a, b) => +new Date(b.createdAt || 0) - +new Date(a.createdAt || 0));
   }
   async getPurchaseRequest(id: string): Promise<import("@shared/schema").PurchaseRequest | undefined> {
     return this.purchaseRequests.get(id);
@@ -1033,19 +1039,13 @@ export class MemStorage {
   async removePurchaseRequestItem(id: string): Promise<boolean> {
     return this.purchaseRequestItems.delete(id);
   }
-  async setPurchaseRequestStatus(id: string, status: 'DRAFT'|'SUBMITTED'|'APPROVED'|'REJECTED'): Promise<import("@shared/schema").PurchaseRequest> {
+  async setPurchaseRequestStatus(id: string, status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'): Promise<import("@shared/schema").PurchaseRequest> {
     const cur = this.purchaseRequests.get(id);
     if (!cur) throw new Error('Purchase request not found');
     const up = { ...cur, status } as any;
     this.purchaseRequests.set(id, up);
     return up;
   }
-
-  // Quote Attachments
-  getQuoteAttachments(quoteId: string): Promise<import("@shared/schema").QuoteAttachment[]>;
-  getQuoteAttachment(id: string): Promise<import("@shared/schema").QuoteAttachment | undefined>;
-  addQuoteAttachment(data: import("@shared/schema").InsertQuoteAttachment): Promise<import("@shared/schema").QuoteAttachment>;
-  deleteQuoteAttachment(id: string): Promise<boolean>;
 
   // Finance (In-memory fallback)
   async getFinanceEntries(): Promise<Finance[]> {
@@ -1059,7 +1059,7 @@ export class MemStorage {
 
   async createFinanceEntry(data: InsertFinance): Promise<Finance> {
     const id = randomUUID();
-    
+
     // Generate code if not provided
     let code = (data as any).code;
     if (!code) {
@@ -1067,7 +1067,7 @@ export class MemStorage {
       const count = Array.from(this.finances.values()).filter(f => f.entryType === data.entryType).length + 1;
       code = `${prefix}-${String(count).padStart(5, '0')}`;
     }
-    
+
     const entry: Finance = { id, code, createdAt: new Date(), ...(data as any) } as Finance;
     this.finances.set(id, entry);
     return entry;
@@ -1079,7 +1079,7 @@ export class MemStorage {
     const updated: Finance = { ...existing, ...(data as any) } as Finance;
     this.finances.set(id, updated);
     return updated;
-    }
+  }
 
   async deleteFinanceEntry(id: string): Promise<boolean> {
     return this.finances.delete(id);
@@ -1130,21 +1130,21 @@ export class MemStorage {
   }> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const dailySales = Array.from(this.sales.values())
       .filter(sale => sale.createdAt && sale.createdAt >= today)
       .reduce((sum, sale) => sum + parseFloat(sale.total), 0);
-    
+
     const pendingQuotes = Array.from(this.quotes.values())
       .filter(quote => quote.status === "PENDING").length;
-    
+
     const totalProducts = this.products.size;
-    
+
     const activeCustomers = Array.from(this.customers.values())
       .filter(customer => customer.isActive).length;
-    
+
     const lowStockItems = (await this.getLowStockProducts()).length;
-    
+
     return {
       dailySales,
       pendingQuotes,
