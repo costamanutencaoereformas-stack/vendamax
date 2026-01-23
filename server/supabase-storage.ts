@@ -84,6 +84,7 @@ import {
 export class SupabaseStorage implements IStorage {
   // Auto-migration: ensure finance columns exist (code, project_id), backfill code, and index
   async ensureFinanceCode(): Promise<void> {
+    if (!db) return;
     try {
       // 1) Add column if not exists
       await db.execute(sql`ALTER TABLE ${finance} ADD COLUMN IF NOT EXISTS code text`);
@@ -125,6 +126,7 @@ export class SupabaseStorage implements IStorage {
 
   // Auto-migration: ensure extra product columns (brand, ncm)
   async ensureProductExtraColumns(): Promise<void> {
+    if (!db) return;
     try {
       await db.execute(sql`ALTER TABLE ${products} ADD COLUMN IF NOT EXISTS brand text`);
       await db.execute(sql`ALTER TABLE ${products} ADD COLUMN IF NOT EXISTS ncm text`);
@@ -135,6 +137,7 @@ export class SupabaseStorage implements IStorage {
 
   // Auto-migration: create product auxiliary tables if not exist
   async ensureProductAuxTables(): Promise<void> {
+    if (!db) return;
     try {
       await db.execute(sql`CREATE TABLE IF NOT EXISTS product_price_history (
         id text PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -872,17 +875,15 @@ export class SupabaseStorage implements IStorage {
   }
 
   // Quote Attachments
-  async getQuoteAttachments(quoteId: string) {
-    return db.query.quoteAttachments.findMany({
-      where: (quoteAttachments, { eq }) => eq(quoteAttachments.quoteId, quoteId),
-      orderBy: (quoteAttachments, { desc }) => [desc(quoteAttachments.uploadedAt)],
-    });
+  async getQuoteAttachments(quoteId: string): Promise<QuoteAttachment[]> {
+    return await db.select().from(quoteAttachments)
+      .where(eq(quoteAttachments.quoteId, quoteId))
+      .orderBy(desc(quoteAttachments.uploadedAt));
   }
 
-  async getQuoteAttachment(id: string) {
-    return db.query.quoteAttachments.findFirst({
-      where: (quoteAttachments, { eq }) => eq(quoteAttachments.id, id),
-    });
+  async getQuoteAttachment(id: string): Promise<QuoteAttachment | undefined> {
+    const result = await db.select().from(quoteAttachments).where(eq(quoteAttachments.id, id));
+    return result[0];
   }
 
   async addQuoteAttachment(data: InsertQuoteAttachment) {
@@ -1344,7 +1345,7 @@ export class SupabaseStorage implements IStorage {
         );
 
       const projectsWithCalculations = await Promise.all(
-        result.map(async (row) => {
+        result.map(async (row: any) => {
           const tasks = await this.getProjectTasks(row.id);
           const expenses = await this.getProjectExpenses(row.id);
 
@@ -1418,7 +1419,7 @@ export class SupabaseStorage implements IStorage {
       let counter = existing.length + 1;
       while (true) {
         const candidate = `PJT${String(counter).padStart(6, '0')}`;
-        if (!existing.find(p => p.code === candidate)) { code = candidate; break; }
+        if (!existing.find((p: any) => p.code === candidate)) { code = candidate; break; }
         counter++;
       }
     }
@@ -1507,11 +1508,11 @@ export class SupabaseStorage implements IStorage {
       const prefix = 'PRQ';
       const pad = 6;
       const maxNum = existing
-        .map(r => r.number as string)
-        .filter(n => typeof n === 'string' && n.startsWith(prefix))
-        .map(n => parseInt(n.slice(prefix.length), 10))
-        .filter(v => !isNaN(v))
-        .reduce((a, b) => Math.max(a, b), 0);
+        .map((r: any) => r.number as string)
+        .filter((n: any) => typeof n === 'string' && n.startsWith(prefix))
+        .map((n: any) => parseInt(n.slice(prefix.length), 10))
+        .filter((v: any) => !isNaN(v))
+        .reduce((a: number, b: number) => Math.max(a, b), 0);
       const next = (maxNum + 1).toString().padStart(pad, '0');
       number = `${prefix}${next}`;
     }
