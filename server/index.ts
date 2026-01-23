@@ -68,7 +68,7 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+const serverPromise = (async () => {
   try {
     // Executar migrações do banco de dados
     await runMigrations();
@@ -114,15 +114,21 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  return server;
 })();
+
+export default app;
+
+// Start server if this is the main module
+if (import.meta.url === `file://${process.argv[1]}` || process.env.NODE_ENV === 'development' || !process.env.VERCEL) {
+  serverPromise.then((server) => {
+    const port = parseInt(process.env.PORT || '5000', 10);
+    server.listen({
+      port,
+      host: "0.0.0.0",
+    }, () => {
+      log(`serving on port ${port}`);
+    });
+  });
+}
+
