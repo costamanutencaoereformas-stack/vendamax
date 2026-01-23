@@ -148,7 +148,7 @@ export default function Sales() {
   const [additionalItems, setAdditionalItems] = useState<ManualItem[]>([]);
   const [fromQuoteDueDate, setFromQuoteDueDate] = useState<string>("");
   const [fromQuoteNotes, setFromQuoteNotes] = useState<string>("");
-  const addAdditionalItem = (kind: 'product'|'service') => {
+  const addAdditionalItem = (kind: 'product' | 'service') => {
     setAdditionalItems((prev) => [
       ...prev,
       { kind, productId: null, serviceDescription: kind === 'service' ? '' : null, quantity: 1, unitPrice: 0 },
@@ -162,7 +162,7 @@ export default function Sales() {
   };
   const additionalSubtotal = useMemo(() =>
     additionalItems.reduce((sum, it) => sum + (Number(it.quantity) * Number(it.unitPrice || 0)), 0),
-  [additionalItems]);
+    [additionalItems]);
   const combinedSubtotalFromQuote = useMemo(() => (selectedQuote ? Number(selectedQuote.subtotal) : 0) + additionalSubtotal, [selectedQuote, additionalSubtotal]);
   const combinedTotalFromQuote = useMemo(() => {
     const baseDiscount = Number(selectedQuote?.discount ?? 0);
@@ -176,7 +176,7 @@ export default function Sales() {
   const [manualItems, setManualItems] = useState<ManualItem[]>([]);
   const [manualProjectId, setManualProjectId] = useState<string>("");
 
-  const addManualItem = (kind: 'product'|'service') => {
+  const addManualItem = (kind: 'product' | 'service') => {
     setManualItems((prev) => [
       ...prev,
       { kind, productId: null, serviceDescription: kind === 'service' ? '' : null, quantity: 1, unitPrice: 0 },
@@ -191,7 +191,7 @@ export default function Sales() {
 
   const manualSubtotal = useMemo(() =>
     manualItems.reduce((sum, it) => sum + (Number(it.quantity) * Number(it.unitPrice || 0)), 0),
-  [manualItems]);
+    [manualItems]);
   const manualTotal = useMemo(() => Math.max(0, manualSubtotal - Number(manualDiscount || 0)), [manualSubtotal, manualDiscount]);
 
   const resetManualForm = () => {
@@ -315,13 +315,13 @@ export default function Sales() {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, paymentMethod, dueDate, notes, discount }: { id: string; status: string; paymentMethod?: string; dueDate?: Date; notes?: string; discount?: number | string }) => {
       const payload: any = { status };
-      
+
       // Adicionar campos opcionais se fornecidos
       if (paymentMethod !== undefined) payload.paymentMethod = paymentMethod;
       if (dueDate !== undefined) payload.dueDate = dueDate;
       if (notes !== undefined) payload.notes = notes;
       if (discount !== undefined) payload.discount = discount;
-      
+
       const response = await fetch(`/api/sales/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -387,7 +387,7 @@ export default function Sales() {
     const matchesProject = filterProject === "all" || sale.projectId === filterProject;
     const matchesCustomer = filterCustomer === "all" || sale.customerId === filterCustomer;
     const matchesPayment = filterPayment === "all" || sale.paymentMethod === filterPayment;
-    let dueDateISO = sale.dueDate ? (typeof sale.dueDate === 'string' ? sale.dueDate.slice(0,10) : sale.dueDate.toISOString().slice(0,10)) : null;
+    let dueDateISO = sale.dueDate ? (typeof sale.dueDate === 'string' ? sale.dueDate.slice(0, 10) : sale.dueDate.toISOString().slice(0, 10)) : null;
     const matchesDueDateStart = !filterDueDateStart || (dueDateISO && dueDateISO >= filterDueDateStart);
     const matchesDueDateEnd = !filterDueDateEnd || (dueDateISO && dueDateISO <= filterDueDateEnd);
     return matchesSearch && matchesStatus && matchesProject && matchesCustomer && matchesPayment && matchesDueDateStart && matchesDueDateEnd;
@@ -478,8 +478,8 @@ export default function Sales() {
   };
 
   const handleSaleUpdate = (sale: Sale, updates: Partial<Sale>) => {
-    updateStatusMutation.mutate({ 
-      id: sale.id, 
+    updateStatusMutation.mutate({
+      id: sale.id,
       status: (updates.status || sale.status) as string,
       paymentMethod: updates.paymentMethod as string | undefined,
       dueDate: updates.dueDate as Date | undefined,
@@ -497,10 +497,10 @@ export default function Sales() {
   const createFromQuoteMutation = useMutation({
     mutationFn: async () => {
       if (!selectedQuote) throw new Error('Selecione um orçamento aprovado');
-      
+
       // Fetch quote items first
       const quoteItems = await fetch(`/api/quotes/${selectedQuote.id}/items`).then(res => res.json());
-      
+
       // Create payload with quote items
       const payload = {
         number: `VEN-${selectedQuote.number}-${Date.now()}`,
@@ -544,7 +544,7 @@ export default function Sales() {
       // Os itens do orçamento são automaticamente copiados pelo backend
       if (additionalItems.length > 0) {
         console.log(`[Sales] Criando ${additionalItems.length} itens adicionais para venda ${sale.id}`);
-        
+
         for (const it of additionalItems) {
           const itemPayload: any = {
             productId: it.kind === 'product' ? it.productId : undefined,
@@ -655,50 +655,50 @@ export default function Sales() {
                   <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                 </div>
 
-              {/* Sale Items List */}
-              <div>
-                <Label>Itens da Venda</Label>
-                <div className="mt-2 border rounded-md divide-y">
-                  <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground bg-muted/50">
-                    <div className="col-span-4">Produto/Serviço</div>
-                    <div className="col-span-2 text-right">Qtd</div>
-                    <div className="col-span-2 text-right">Preço Un.</div>
-                    <div className="col-span-2 text-right">Desconto</div>
-                    <div className="col-span-2 text-right">Total</div>
-                  </div>
-                  {viewingSaleItemsLoading ? (
-                    <div className="px-3 py-4 text-sm text-gray-500">Carregando itens...</div>
-                  ) : (viewingSaleItems || []).length > 0 ? (
-                    (viewingSaleItems || []).map((item: any) => (
-                      <div key={item.id} className="grid grid-cols-12 gap-2 px-3 py-2 text-sm">
-                        <div className="col-span-4 truncate">
-                          {item.productId ? (
-                            <span>
-                              <span className="font-medium">Produto:</span>{" "}
-                              {getProductName(item.productId) || item.productId}
-                              {(() => {
-                                const code = getProductCode(item.productId);
-                                return code ? ` (code: ${code})` : "";
-                              })()}
-                            </span>
-                          ) : (
-                            <span>
-                              <span className="font-medium">Serviço:</span>{" "}
-                              {item.serviceDescription || 'Serviço'}
-                            </span>
-                          )}
+                {/* Sale Items List */}
+                <div>
+                  <Label>Itens da Venda</Label>
+                  <div className="mt-2 border rounded-md divide-y">
+                    <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground bg-muted/50">
+                      <div className="col-span-4">Produto/Serviço</div>
+                      <div className="col-span-2 text-right">Qtd</div>
+                      <div className="col-span-2 text-right">Preço Un.</div>
+                      <div className="col-span-2 text-right">Desconto</div>
+                      <div className="col-span-2 text-right">Total</div>
+                    </div>
+                    {viewingSaleItemsLoading ? (
+                      <div className="px-3 py-4 text-sm text-gray-500">Carregando itens...</div>
+                    ) : (viewingSaleItems || []).length > 0 ? (
+                      (viewingSaleItems || []).map((item: any) => (
+                        <div key={item.id} className="grid grid-cols-12 gap-2 px-3 py-2 text-sm">
+                          <div className="col-span-4 truncate">
+                            {item.productId ? (
+                              <span>
+                                <span className="font-medium">Produto:</span>{" "}
+                                {getProductName(item.productId) || item.productId}
+                                {(() => {
+                                  const code = getProductCode(item.productId);
+                                  return code ? ` (code: ${code})` : "";
+                                })()}
+                              </span>
+                            ) : (
+                              <span>
+                                <span className="font-medium">Serviço:</span>{" "}
+                                {item.serviceDescription || 'Serviço'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="col-span-2 text-right">{item.quantity}</div>
+                          <div className="col-span-2 text-right">{formatCurrency(item?.unitPrice ?? 0)}</div>
+                          <div className="col-span-2 text-right">{formatCurrency(item?.discount ?? 0)}</div>
+                          <div className="col-span-2 text-right">{formatCurrency(item?.total ?? 0)}</div>
                         </div>
-                        <div className="col-span-2 text-right">{item.quantity}</div>
-                        <div className="col-span-2 text-right">{formatCurrency(item?.unitPrice ?? 0)}</div>
-                        <div className="col-span-2 text-right">{formatCurrency(item?.discount ?? 0)}</div>
-                        <div className="col-span-2 text-right">{formatCurrency(item?.total ?? 0)}</div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="px-3 py-4 text-sm text-gray-500">Nenhum item.</div>
-                  )}
+                      ))
+                    ) : (
+                      <div className="px-3 py-4 text-sm text-gray-500">Nenhum item.</div>
+                    )}
+                  </div>
                 </div>
-              </div>
               </CardContent>
             </Card>
           ))}
@@ -862,8 +862,8 @@ export default function Sales() {
         </CardContent>
       </Card>
 
-  {/* KPI Cards */}
-  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200 shadow-md hover:shadow-lg transition-shadow">
           <CardContent className="p-4">
             <div className="flex flex-col space-y-2">
@@ -880,7 +880,7 @@ export default function Sales() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-md hover:shadow-lg transition-shadow">
           <CardContent className="p-4">
             <div className="flex flex-col space-y-2">
@@ -902,7 +902,7 @@ export default function Sales() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200 shadow-md hover:shadow-lg transition-shadow">
           <CardContent className="p-4">
             <div className="flex flex-col space-y-2">
@@ -974,8 +974,8 @@ export default function Sales() {
           {filteredSales.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500">
-                {searchTerm || filterStatus !== "all" 
-                  ? "Nenhuma venda encontrada com os filtros aplicados." 
+                {searchTerm || filterStatus !== "all"
+                  ? "Nenhuma venda encontrada com os filtros aplicados."
                   : "Nenhuma venda registrada ainda."
                 }
               </p>
@@ -1274,18 +1274,18 @@ export default function Sales() {
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-gray-700">Data de Vencimento</Label>
-                    <Input 
-                      type="date" 
+                    <Input
+                      type="date"
                       className="mt-1"
-                      value={editingSale.dueDate ? new Date(editingSale.dueDate).toISOString().split('T')[0] : ''} 
-                      onChange={(e) => setEditingSale({...editingSale, dueDate: e.target.value ? new Date(e.target.value) : null})}
+                      value={editingSale.dueDate ? new Date(editingSale.dueDate).toISOString().split('T')[0] : ''}
+                      onChange={(e) => setEditingSale({ ...editingSale, dueDate: e.target.value ? new Date(e.target.value) : null })}
                     />
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-gray-700">Forma de Pagamento</Label>
-                    <Select 
-                      value={editingSale.paymentMethod ?? undefined} 
-                      onValueChange={(value) => setEditingSale({...editingSale, paymentMethod: value as keyof typeof paymentMethods})}
+                    <Select
+                      value={editingSale.paymentMethod ?? undefined}
+                      onValueChange={(value) => setEditingSale({ ...editingSale, paymentMethod: value as keyof typeof paymentMethods })}
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Selecione" />
@@ -1299,15 +1299,15 @@ export default function Sales() {
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-gray-700">Status</Label>
-                    <Select 
-                      value={editingSale.status ?? undefined} 
-                      onValueChange={(value) => setEditingSale({...editingSale, status: value})}
+                    <Select
+                      value={editingSale.status ?? undefined}
+                      onValueChange={(value) => setEditingSale({ ...editingSale, status: value })}
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(statusConfig).map(([key, {label}]) => (
+                        {Object.entries(statusConfig).map(([key, { label }]) => (
                           <SelectItem key={key} value={key}>{label}</SelectItem>
                         ))}
                       </SelectContent>
@@ -1345,10 +1345,10 @@ export default function Sales() {
                   </div>
                   <div className="md:col-span-3">
                     <Label className="text-xs font-medium text-gray-700">Observações</Label>
-                    <Input 
+                    <Input
                       className="mt-1"
-                      value={editingSale.notes || ''} 
-                      onChange={(e) => setEditingSale({...editingSale, notes: e.target.value})}
+                      value={editingSale.notes || ''}
+                      onChange={(e) => setEditingSale({ ...editingSale, notes: e.target.value })}
                     />
                   </div>
                 </div>
@@ -1360,55 +1360,55 @@ export default function Sales() {
               <div className="flex justify-between items-center">
                 <Label className="text-sm font-semibold text-gray-800">Itens da Venda</Label>
                 <div className="flex space-x-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => {
                       setEditingSaleItems(prev => [
-                            ...prev,
-                            { 
-                              id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                              saleId: editingSale!.id,
-                              kind: 'product',
-                              productId: null,
-                              serviceDescription: null,
-                              quantity: 1,
-                              unitPrice: '0',
-                              discount: null,
-                              serviceCost: null,
-                              total: '0',
-                            }
-                          ]);
+                        ...prev,
+                        {
+                          id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                          saleId: editingSale!.id,
+                          kind: 'product',
+                          productId: null,
+                          serviceDescription: null,
+                          quantity: 1,
+                          unitPrice: '0',
+                          discount: null,
+                          serviceCost: null,
+                          total: '0',
+                        }
+                      ]);
                     }}
                   >
                     <Plus className="h-4 w-4 mr-1" /> Produto
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => {
                       setEditingSaleItems(prev => [
-                            ...prev,
-                            { 
-                              id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                              saleId: editingSale!.id,
-                              kind: 'service',
-                              productId: null,
-                              serviceDescription: '',
-                              quantity: 1,
-                              unitPrice: '0',
-                              discount: null,
-                              serviceCost: null,
-                              total: '0',
-                            }
-                          ]);
+                        ...prev,
+                        {
+                          id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                          saleId: editingSale!.id,
+                          kind: 'service',
+                          productId: null,
+                          serviceDescription: '',
+                          quantity: 1,
+                          unitPrice: '0',
+                          discount: null,
+                          serviceCost: null,
+                          total: '0',
+                        }
+                      ]);
                     }}
                   >
                     <Plus className="h-4 w-4 mr-1" /> Serviço
                   </Button>
                 </div>
               </div>
-              
+
               <div className="border rounded-md">
                 <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground bg-muted/50 border-b">
                   <div className="col-span-4">Produto/Serviço</div>
@@ -1428,30 +1428,30 @@ export default function Sales() {
                       const price = Number(item.unitPrice || 0) || 0;
                       const itemDiscount = Number(item.discount || 0) || 0;
                       const total = Math.max(0, qty * price - itemDiscount);
-                      
+
                       return (
                         <div key={item.id} className="grid grid-cols-12 gap-2 items-center px-3 py-2 bg-white">
                           <div className="col-span-4">
                             {isProduct ? (
-                            <ProductPicker
-                              products={products}
-                              value={item.productId}
-                              onSelect={(product) => {
-                                if (!product) return;
-                                const updatedItems = [...editingSaleItems];
-                                const nextQty = Number(updatedItems[index].quantity) || 0;
-                                const nextPrice = Number(product.salePrice || 0) || 0;
-                                const nextDiscount = Number(updatedItems[index].discount || 0) || 0;
-                                const nextTotal = Math.max(0, nextQty * nextPrice - nextDiscount);
-                                updatedItems[index] = {
-                                  ...updatedItems[index],
-                                  productId: product.id,
-                                  unitPrice: String(nextPrice),
-                                  total: String(nextTotal),
-                                } as any;
-                                setEditingSaleItems(updatedItems);
-                              }}
-                            />
+                              <ProductPicker
+                                products={products}
+                                value={item.productId}
+                                onSelect={(product) => {
+                                  if (!product) return;
+                                  const updatedItems = [...editingSaleItems];
+                                  const nextQty = Number(updatedItems[index].quantity) || 0;
+                                  const nextPrice = Number(product.salePrice || 0) || 0;
+                                  const nextDiscount = Number(updatedItems[index].discount || 0) || 0;
+                                  const nextTotal = Math.max(0, nextQty * nextPrice - nextDiscount);
+                                  updatedItems[index] = {
+                                    ...updatedItems[index],
+                                    productId: product.id,
+                                    unitPrice: String(nextPrice),
+                                    total: String(nextTotal),
+                                  } as any;
+                                  setEditingSaleItems(updatedItems);
+                                }}
+                              />
                             ) : (
                               <Input
                                 placeholder="Descrição do serviço"
@@ -1464,7 +1464,7 @@ export default function Sales() {
                                   };
                                   setEditingSaleItems(updatedItems);
                                 }}
-                            />
+                              />
                             )}
                           </div>
                           <div className="col-span-2">
@@ -1475,7 +1475,7 @@ export default function Sales() {
                               onChange={(e) => {
                                 const qty = Number(e.target.value);
                                 if (qty < 1) return;
-                                
+
                                 const updatedItems = [...editingSaleItems];
                                 const nextPrice = Number(updatedItems[index].unitPrice || 0) || 0;
                                 const nextDiscount = Number(updatedItems[index].discount || 0) || 0;
@@ -1498,7 +1498,7 @@ export default function Sales() {
                               onChange={(e) => {
                                 const price = Number(e.target.value);
                                 if (price < 0) return;
-                                
+
                                 const updatedItems = [...editingSaleItems];
                                 const nextQty = Number(updatedItems[index].quantity) || 0;
                                 const nextDiscount = Number(updatedItems[index].discount || 0) || 0;
@@ -1550,8 +1550,8 @@ export default function Sales() {
                             </Button>
                           </div>
                         </div>
-                      </div>
-                    })}
+                      );
+                    }))}
                 </div>
               </div>
 
@@ -1615,8 +1615,8 @@ export default function Sales() {
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setEditingSale(null);
                   setEditingSaleItems([]);
@@ -1634,13 +1634,13 @@ export default function Sales() {
                     notes: editingSale.notes,
                     discount: (editingSale.discount != null ? Number(editingSale.discount) : 0) as any
                   });
-                  
+
                   // Depois atualizar os itens da venda
                   updateSaleItemsMutation.mutate({
                     saleId: editingSale.id,
                     items: editingSaleItems
                   });
-                  
+
                   setEditingSale(null);
                   setEditingSaleItems([]);
                 }
@@ -2058,8 +2058,8 @@ export default function Sales() {
               </div>
             )}
           </div>
-      </DialogContent>
-    </Dialog>
-  </div>
-);
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
