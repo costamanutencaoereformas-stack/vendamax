@@ -1572,7 +1572,7 @@ export class SupabaseStorage implements IStorage {
       let counter = existing.length + 1;
       while (true) {
         const candidate = `CTR${String(counter).padStart(6, '0')}`;
-        if (!existing.find(c => c.number === candidate)) { number = candidate; break; }
+        if (!existing.find((c: any) => c.number === candidate)) { number = candidate; break; }
         counter++;
       }
     }

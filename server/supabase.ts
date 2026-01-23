@@ -24,15 +24,21 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !DATABASE_URL) {
 
 // Retorna informações de debug do banco e colunas da tabela projects
 export async function getProjectsTableDebug() {
-  const url = new URL(process.env.DATABASE_URL!);
-  const masked = `${url.protocol}//${url.hostname}:${url.port}/${url.pathname.replace(/^\//, '')}`;
-  const cols = await queryClient`
-    SELECT column_name
-    FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'projects'
-    ORDER BY ordinal_position
-  `;
-  return { database: masked, columns: cols.map((r: any) => r.column_name) };
+  if (!process.env.DATABASE_URL) return { error: 'DATABASE_URL missing' };
+  try {
+    const url = new URL(process.env.DATABASE_URL);
+    const masked = `${url.protocol}//${url.hostname}:${url.port}/${url.pathname.replace(/^\//, '')}`;
+    if (!queryClient) return { database: masked, error: 'queryClient not initialized' };
+    const cols = await queryClient`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'projects'
+      ORDER BY ordinal_position
+    `;
+    return { database: masked, columns: cols.map((r: any) => r.column_name) };
+  } catch (e: any) {
+    return { error: e.message };
+  }
 }
 
 // Criar cliente Supabase
@@ -47,9 +53,18 @@ const queryClient = (typeof DATABASE_URL === 'string' && DATABASE_URL.length > 0
   : null as any;
 
 // Exportar cliente Drizzle com o esquema
-export const db = queryClient
+const actualDb = queryClient
   ? drizzle(queryClient, { schema })
-  : null as any;
+  : null;
+
+export const db: any = new Proxy({} as any, {
+  get(_, prop) {
+    if (!actualDb) {
+      throw new Error(`Database connection not initialized: DATABASE_URL environment variable is missing or invalid. (Attempted to access: ${String(prop)})`);
+    }
+    return (actualDb as any)[prop];
+  }
+});
 
 // Função para executar migrações
 export async function runMigrations() {
@@ -68,13 +83,22 @@ export async function runMigrations() {
 
 // Helper para verificar conexão/consistência com o banco utilizado pelo servidor
 export async function verifyDbConsistency() {
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) {
+    console.warn('[DB] verifyDbConsistency skipped: DATABASE_URL not set.');
+    return;
+  }
+  if (!queryClient) {
+    console.warn('[DB] verifyDbConsistency skipped: queryClient not initialized.');
+    return;
+  }
+
   try {
-    // Log seguro do host e database (sem credenciais)
-    const url = new URL(process.env.DATABASE_URL!);
+    const url = new URL(dbUrl);
     const masked = `${url.protocol}//${url.hostname}:${url.port}/${url.pathname.replace(/^\//, '')}`;
     console.log(`[DB] Conectado a: ${masked}`);
 
-    // Checar existência da tabela finance
+    // Check existence of table finance
     const financeTable = await queryClient`
       SELECT table_name
       FROM information_schema.tables
@@ -85,7 +109,7 @@ export async function verifyDbConsistency() {
     } else {
       console.log("[DB] Ok: tabela 'finance' encontrada.");
 
-      // Verificar colunas principais
+      // Check columns
       const financeCols = await queryClient`
         SELECT column_name
         FROM information_schema.columns
@@ -95,7 +119,7 @@ export async function verifyDbConsistency() {
       console.log("[DB] Colunas da tabela finance:", financeCols.map((r: any) => r.column_name).join(', '));
     }
 
-    // Checar existência da coluna projects.status
+    // Check projects.status
     const rows = await queryClient`
       SELECT column_name
       FROM information_schema.columns

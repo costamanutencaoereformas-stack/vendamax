@@ -68,7 +68,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const serverPromise = (async () => {
+export const serverPromise = (async () => {
   try {
     // Executar migrações do banco de dados
     await runMigrations();
@@ -79,42 +79,48 @@ const serverPromise = (async () => {
     // Continuar a execução mesmo se as migrações falharem
   }
 
-  const server = await registerRoutes(app);
+  try {
+    const server = await registerRoutes(app);
 
-  // Verificar conexão/consistência do DB usado por este processo
-  await verifyDbConsistency();
+    // Verificar conexão/consistência do DB usado por este processo
+    await verifyDbConsistency();
 
-  // Health check for platforms
-  app.get("/health", (_req: Request, res: Response) => res.status(200).json({ status: "ok" }));
+    // Health check for platforms
+    app.get("/health", (_req: Request, res: Response) => res.status(200).json({ status: "ok" }));
 
-  // Serve uploaded files (logos, etc.)
-  app.use('/uploads', express.static(resolve(process.cwd(), 'uploads')));
+    // Serve uploaded files (logos, etc.)
+    app.use('/uploads', express.static(resolve(process.cwd(), 'uploads')));
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-    // Always return JSON; don't throw after responding to avoid HTML error overlays
-    try {
-      if (!res.headersSent) {
-        res.status(status).json({ message });
+      // Always return JSON; don't throw after responding to avoid HTML error overlays
+      try {
+        if (!res.headersSent) {
+          res.status(status).json({ message });
+        }
+      } catch (_) {
+        // ignore
       }
-    } catch (_) {
-      // ignore
+      console.error("API error:", err);
+    });
+
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else if (!process.env.VERCEL) {
+      serveStatic(app);
     }
-    console.error("API error:", err);
-  });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else if (!process.env.VERCEL) {
-    serveStatic(app);
+    return server;
+  } catch (error) {
+    log('CRITICAL: Erro durante a inicialização do servidor!');
+    console.error(error);
+    throw error;
   }
-
-  return server;
 })();
 
 export default app;
