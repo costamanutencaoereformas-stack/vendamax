@@ -196,7 +196,21 @@ export const serverPromise = (async () => {
           ];
           res.json(mockProducts);
         } else {
-          res.json(data || []);
+          // Log para debug da estrutura
+          console.log('Products data sample:', data?.[0]);
+          console.log('Products fields:', data?.[0] ? Object.keys(data[0]) : 'No data');
+          
+          // Filtrar apenas produtos ativos e garantir valores padrão
+          const activeProducts = (data || []).filter((product: any) => {
+            // Considerar ativo se não tiver campo is_active ou se for true
+            return !product.hasOwnProperty('is_active') || product.is_active === true;
+          }).map((product: any) => ({
+            ...product,
+            price: product.price || product.sale_price || product.cost_price || 0,
+            stock: product.stock || product.quantity || product.inventory || 0
+          }));
+          
+          res.json(activeProducts);
         }
       } else {
         // Fallback para mock
