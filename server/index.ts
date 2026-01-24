@@ -17,9 +17,9 @@ if (!process.env.DATABASE_URL && !process.env.VERCEL) {
 
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
-import { registerRoutes } from "./routes-simple";
 import { setupVite, serveStatic, log } from "./vite";
-import { runMigrations, verifyDbConsistency } from "./supabase";
+import { runMigrations, verifyDbConsistency, getProjectsTableDebug } from "./supabase";
+import { createServer, type Server } from "http";
 
 const app = express();
 app.use(express.json());
@@ -79,48 +79,145 @@ export const serverPromise = (async () => {
     // Continuar a execução mesmo se as migrações falharem
   }
 
-  try {
-    const server = await registerRoutes(app);
+  // Helper: parse date strings safely to avoid timezone shifting a day back
+  function parseDateSafe(input: any): Date | undefined {
+    if (!input) return undefined;
+    if (input instanceof Date) return input;
+    if (typeof input === 'string') {
+      // If it's a pure date like YYYY-MM-DD, parse as local noon to avoid timezone shifts
+      const m = input.match(/^\d{4}-\d{2}-\d{2}$/);
+      if (m) {
+        const [year, month, day] = input.split('-').map(Number);
+        return new Date(year, month - 1, day, 12, 0, 0, 0);
+      }
+      // If it's an ISO string, parse normally
+      const d = new Date(input);
+      return isNaN(d.getTime()) ? undefined : d;
+    }
+    try {
+      const d = new Date(input);
+      return isNaN(d.getTime()) ? undefined : d;
+    } catch {
+      return undefined;
+    }
+  }
+
+  // API Routes
+  app.get("/api/health", async (req: Request, res: Response) => {
+    try {
+      const debug = await getProjectsTableDebug();
+      res.json({ 
+        status: "ok", 
+        timestamp: new Date().toISOString(),
+        database: debug.error ? "error" : "connected",
+        debug 
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        status: "error", 
+        message: error?.message || "Unknown error",
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  app.get("/api/customers", async (req: Request, res: Response) => {
+    try {
+      const mockCustomers = [
+        { id: 1, name: "Cliente Exemplo 1", email: "cliente1@example.com", phone: "11999999999", createdAt: new Date().toISOString() },
+        { id: 2, name: "Cliente Exemplo 2", email: "cliente2@example.com", phone: "11888888888", createdAt: new Date().toISOString() }
+      ];
+      res.json(mockCustomers);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/products", async (req: Request, res: Response) => {
+    try {
+      const mockProducts = [
+        { id: 1, name: "Produto Exemplo 1", price: 100.00, stock: 10, createdAt: new Date().toISOString() },
+        { id: 2, name: "Produto Exemplo 2", price: 200.00, stock: 5, createdAt: new Date().toISOString() }
+      ];
+      res.json(mockProducts);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/finance", async (req: Request, res: Response) => {
+    try {
+      const mockFinance = [
+        { id: 1, type: "income", amount: 1000.00, description: "Venda", createdAt: new Date().toISOString() },
+        { id: 2, type: "expense", amount: 500.00, description: "Compra", createdAt: new Date().toISOString() }
+      ];
+      res.json(mockFinance);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/quotes", async (req: Request, res: Response) => {
+    try {
+      const mockQuotes = [
+        { id: 1, customerName: "Cliente 1", total: 1500.00, status: "pending", createdAt: new Date().toISOString() },
+        { id: 2, customerName: "Cliente 2", total: 2500.00, status: "approved", createdAt: new Date().toISOString() }
+      ];
+      res.json(mockQuotes);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/notifications", async (req: Request, res: Response) => {
+    try {
+      res.json([]);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  const server = createServer(app);
 
     // Verificar conexão/consistência do DB usado por este processo
-    await verifyDbConsistency();
+  await verifyDbConsistency();
 
-    // Health check for platforms
-    app.get("/health", (_req: Request, res: Response) => res.status(200).json({ status: "ok" }));
+  // Health check for platforms
+  app.get("/health", (_req: Request, res: Response) => res.status(200).json({ status: "ok" }));
 
-    // Serve uploaded files (logos, etc.)
-    app.use('/uploads', express.static(resolve(process.cwd(), 'uploads')));
+  // Serve uploaded files (logos, etc.)
+  app.use('/uploads', express.static(resolve(process.cwd(), 'uploads')));
 
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
 
-      // Always return JSON; don't throw after responding to avoid HTML error overlays
-      try {
-        if (!res.headersSent) {
-          res.status(status).json({ message });
-        }
-      } catch (_) {
-        // ignore
+    // Always return JSON; don't throw after responding to avoid HTML error overlays
+    try {
+      if (!res.headersSent) {
+        res.status(status).json({ message });
       }
-      console.error("API error:", err);
-    });
-
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else if (!process.env.VERCEL) {
-      serveStatic(app);
+    } catch (_) {
+      // ignore
     }
+    console.error("API error:", err);
+  });
 
-    return server;
-  } catch (error) {
-    log('CRITICAL: Erro durante a inicialização do servidor!');
-    console.error(error);
-    throw error;
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else if (!process.env.VERCEL) {
+    serveStatic(app);
   }
+
+  return server;
+} catch (error) {
+  log('CRITICAL: Erro durante a inicialização do servidor!');
+  console.error(error);
+  throw error;
+}
 })();
 
 export default app;
