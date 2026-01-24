@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import type { Customer, Supplier, Sale, Finance } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { formatCurrency, createDateFromInput, formatDateForInput, createISODateString } from '@/lib/formatters';

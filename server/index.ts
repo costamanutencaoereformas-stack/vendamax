@@ -373,6 +373,155 @@ export const serverPromise = (async () => {
     }
   });
 
+  // APIs adicionais que o frontend está solicitando
+  app.get("/api/dashboard/metrics", async (req: Request, res: Response) => {
+    try {
+      // Métricas do dashboard
+      const metrics = {
+        totalCustomers: 0,
+        totalProducts: 0,
+        totalQuotes: 0,
+        totalRevenue: 0,
+        recentActivity: []
+      };
+      
+      if (supabase) {
+        // Buscar totais reais
+        const [customersCount, productsCount, quotesCount] = await Promise.all([
+          supabase.from('customers').select('id', { count: 'exact', head: true }),
+          supabase.from('products').select('id', { count: 'exact', head: true }),
+          supabase.from('quotes').select('id', { count: 'exact', head: true })
+        ]);
+        
+        metrics.totalCustomers = customersCount.count || 0;
+        metrics.totalProducts = productsCount.count || 0;
+        metrics.totalQuotes = quotesCount.count || 0;
+      }
+      
+      res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/sales", async (req: Request, res: Response) => {
+    try {
+      // Vendas - pode usar tabela sales ou retornar mock
+      const mockSales = [
+        { id: 1, customerName: "Cliente 1", total: 1500, status: "completed", createdAt: new Date().toISOString() },
+        { id: 2, customerName: "Cliente 2", total: 2500, status: "pending", createdAt: new Date().toISOString() }
+      ];
+      res.json(mockSales);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/products/low-stock", async (req: Request, res: Response) => {
+    try {
+      if (supabase) {
+        // Buscar produtos com estoque baixo
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .lt('current_stock', 5)
+          .order('current_stock', { ascending: true })
+          .limit(10);
+        
+        if (error) {
+          console.error('Supabase low stock error:', error);
+          res.json([]);
+        } else {
+          res.json(data || []);
+        }
+      } else {
+        res.json([]);
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/company", async (req: Request, res: Response) => {
+    try {
+      // Dados da empresa - mock por enquanto
+      const company = {
+        id: 1,
+        name: "VendaMax",
+        email: "contato@vendamax.com",
+        phone: "(00) 00000-0000",
+        address: "Endereço da Empresa",
+        logo: null,
+        taxId: "00.000.000/0001-00"
+      };
+      res.json(company);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/projects", async (req: Request, res: Response) => {
+    try {
+      // Projetos - mock por enquanto
+      const mockProjects = [
+        { id: 1, name: "Projeto 1", status: "active", customerName: "Cliente 1", createdAt: new Date().toISOString() },
+        { id: 2, name: "Projeto 2", status: "completed", customerName: "Cliente 2", createdAt: new Date().toISOString() }
+      ];
+      res.json(mockProjects);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/cash-register/current", async (req: Request, res: Response) => {
+    try {
+      // Caixa aberto - mock por enquanto
+      const cashRegister = {
+        id: 1,
+        isOpen: true,
+        openedAt: new Date().toISOString(),
+        openedBy: "Usuário",
+        initialAmount: 1000,
+        currentAmount: 2500
+      };
+      res.json(cashRegister);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/cash-register/summary", async (req: Request, res: Response) => {
+    try {
+      // Resumo do caixa - mock por enquanto
+      const summary = {
+        totalSales: 1500,
+        totalExpenses: 200,
+        netAmount: 1300,
+        paymentMethods: {
+          cash: 800,
+          card: 500,
+          transfer: 200
+        }
+      };
+      res.json(summary);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
+  app.get("/api/contracts", async (req: Request, res: Response) => {
+    try {
+      // Contratos - mock por enquanto
+      const mockContracts = [
+        { id: 1, title: "Contrato 1", status: "active", customerName: "Cliente 1", value: 5000, createdAt: new Date().toISOString() },
+        { id: 2, title: "Contrato 2", status: "pending", customerName: "Cliente 2", value: 3000, createdAt: new Date().toISOString() }
+      ];
+      res.json(mockContracts);
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Unknown error" });
+    }
+  });
+
   const server = createServer(app);
 
   // Health check for platforms
