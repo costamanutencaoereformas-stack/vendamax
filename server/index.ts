@@ -19,6 +19,23 @@ import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { createServer, type Server } from "http";
 
+// Supabase integration
+import { createClient } from '@supabase/supabase-js';
+
+// Carregar variáveis de ambiente
+dotenv.config();
+
+const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
+
+// Inicializar Supabase
+let supabase: any = null;
+if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log('✅ Supabase client initialized');
+} else {
+  console.log('⚠️ Supabase credentials not found, using mock data');
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -93,10 +110,31 @@ export const serverPromise = (async () => {
   // API Routes
   app.get("/api/health", async (req: Request, res: Response) => {
     try {
+      let databaseStatus = "mock";
+      let debug: any = null;
+      
+      if (supabase) {
+        try {
+          // Testar conexão com Supabase
+          const { data, error } = await supabase.from('customers').select('count').single();
+          if (error) {
+            databaseStatus = "error";
+            debug = { error: error.message };
+          } else {
+            databaseStatus = "connected";
+            debug = { data };
+          }
+        } catch (err: any) {
+          databaseStatus = "error";
+          debug = { error: err.message };
+        }
+      }
+      
       res.json({ 
         status: "ok", 
         timestamp: new Date().toISOString(),
-        database: "mock"
+        database: databaseStatus,
+        debug
       });
     } catch (error: any) {
       res.status(500).json({ 
