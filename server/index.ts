@@ -17,7 +17,6 @@ if (!process.env.DATABASE_URL && !process.env.VERCEL) {
 
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
-import { runMigrations, verifyDbConsistency, getProjectsTableDebug } from "./supabase";
 import { createServer, type Server } from "http";
 
 const app = express();
@@ -68,16 +67,6 @@ app.use((req, res, next) => {
 });
 
 export const serverPromise = (async () => {
-  try {
-    // Executar migrações do banco de dados
-    await runMigrations();
-    console.log('Migrações do banco de dados concluídas com sucesso!');
-  } catch (error) {
-    console.log('Erro ao executar migrações do banco de dados:');
-    console.error(error);
-    // Continuar a execução mesmo se as migrações falharem
-  }
-
   // Helper: parse date strings safely to avoid timezone shifting a day back
   function parseDateSafe(input: any): Date | undefined {
     if (!input) return undefined;
@@ -104,12 +93,10 @@ export const serverPromise = (async () => {
   // API Routes
   app.get("/api/health", async (req: Request, res: Response) => {
     try {
-      const debug = await getProjectsTableDebug();
       res.json({ 
         status: "ok", 
         timestamp: new Date().toISOString(),
-        database: debug.error ? "error" : "connected",
-        debug 
+        database: "mock"
       });
     } catch (error: any) {
       res.status(500).json({ 
@@ -177,9 +164,6 @@ export const serverPromise = (async () => {
   });
 
   const server = createServer(app);
-
-  // Verificar conexão/consistência do DB usado por este processo
-  await verifyDbConsistency();
 
   // Health check for platforms
   app.get("/health", (_req: Request, res: Response) => res.status(200).json({ status: "ok" }));
