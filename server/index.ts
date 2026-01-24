@@ -147,11 +147,32 @@ export const serverPromise = (async () => {
 
   app.get("/api/customers", async (req: Request, res: Response) => {
     try {
-      const mockCustomers = [
-        { id: 1, name: "Cliente Exemplo 1", email: "cliente1@example.com", phone: "11999999999", createdAt: new Date().toISOString() },
-        { id: 2, name: "Cliente Exemplo 2", email: "cliente2@example.com", phone: "11888888888", createdAt: new Date().toISOString() }
-      ];
-      res.json(mockCustomers);
+      if (supabase) {
+        // Buscar dados reais do Supabase
+        const { data, error } = await supabase
+          .from('customers')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          // Fallback para mock se der erro
+          const mockCustomers = [
+            { id: 1, name: "Cliente Exemplo 1", email: "cliente1@example.com", phone: "11999999999", created_at: new Date().toISOString() },
+            { id: 2, name: "Cliente Exemplo 2", email: "cliente2@example.com", phone: "11888888888", created_at: new Date().toISOString() }
+          ];
+          res.json(mockCustomers);
+        } else {
+          res.json(data || []);
+        }
+      } else {
+        // Fallback para mock
+        const mockCustomers = [
+          { id: 1, name: "Cliente Exemplo 1", email: "cliente1@example.com", phone: "11999999999", created_at: new Date().toISOString() },
+          { id: 2, name: "Cliente Exemplo 2", email: "cliente2@example.com", phone: "11888888888", created_at: new Date().toISOString() }
+        ];
+        res.json(mockCustomers);
+      }
     } catch (error: any) {
       res.status(500).json({ message: error?.message || "Unknown error" });
     }
