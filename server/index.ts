@@ -180,11 +180,32 @@ export const serverPromise = (async () => {
 
   app.get("/api/products", async (req: Request, res: Response) => {
     try {
-      const mockProducts = [
-        { id: 1, name: "Produto Exemplo 1", price: 100.00, stock: 10, createdAt: new Date().toISOString() },
-        { id: 2, name: "Produto Exemplo 2", price: 200.00, stock: 5, createdAt: new Date().toISOString() }
-      ];
-      res.json(mockProducts);
+      if (supabase) {
+        // Buscar dados reais do Supabase
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          // Fallback para mock se der erro
+          const mockProducts = [
+            { id: 1, name: "Produto Exemplo 1", price: 100.00, stock: 10, created_at: new Date().toISOString() },
+            { id: 2, name: "Produto Exemplo 2", price: 200.00, stock: 5, created_at: new Date().toISOString() }
+          ];
+          res.json(mockProducts);
+        } else {
+          res.json(data || []);
+        }
+      } else {
+        // Fallback para mock
+        const mockProducts = [
+          { id: 1, name: "Produto Exemplo 1", price: 100.00, stock: 10, created_at: new Date().toISOString() },
+          { id: 2, name: "Produto Exemplo 2", price: 200.00, stock: 5, created_at: new Date().toISOString() }
+        ];
+        res.json(mockProducts);
+      }
     } catch (error: any) {
       res.status(500).json({ message: error?.message || "Unknown error" });
     }
