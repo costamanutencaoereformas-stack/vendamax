@@ -205,6 +205,23 @@ export const serverPromise = (async () => {
             // Considerar ativo se não tiver campo is_active ou se for true
             return !product.hasOwnProperty('is_active') || product.is_active === true;
           }).map((product: any) => ({
+            id: product.id,
+            code: product.code || '',
+            name: product.name || '',
+            description: product.description || null,
+            imageUrl: product.image_url || null,
+            costPrice: product.cost_price?.toString() || '0',
+            salePrice: product.sale_price?.toString() || '0',
+            currentStock: product.current_stock || 0,
+            minimumStock: product.minimum_stock || 0,
+            maximumStock: product.maximum_stock || 0,
+            categoryId: product.category_id || null,
+            supplierId: product.supplier_id || null,
+            unit: product.unit || 'UN',
+            barcode: product.barcode || null,
+            isActive: product.is_active === true,
+            createdAt: product.created_at || null,
+            // Manter campos originais para compatibilidade
             ...product,
             price: product.price || product.sale_price || product.cost_price || 0,
             stock: product.current_stock || product.stock || product.quantity || product.inventory || 0
