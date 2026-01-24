@@ -244,11 +244,46 @@ export const serverPromise = (async () => {
 
   app.get("/api/finance", async (req: Request, res: Response) => {
     try {
-      const mockFinance = [
-        { id: 1, type: "income", amount: 1000.00, description: "Venda", createdAt: new Date().toISOString() },
-        { id: 2, type: "expense", amount: 500.00, description: "Compra", createdAt: new Date().toISOString() }
-      ];
-      res.json(mockFinance);
+      if (supabase) {
+        // Buscar dados financeiros reais do Supabase
+        const { data, error } = await supabase
+          .from('financial_entries')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (error) {
+          console.error('Supabase finance error:', error);
+          // Fallback para mock se der erro
+          const mockFinance = [
+            { id: 1, type: "income", amount: 1000.00, description: "Venda", created_at: new Date().toISOString() },
+            { id: 2, type: "expense", amount: 500.00, description: "Compra", created_at: new Date().toISOString() }
+          ];
+          res.json(mockFinance);
+        } else {
+          // Mapear para formato esperado pelo frontend
+          const financeData = (data || []).map((entry: any) => ({
+            id: entry.id,
+            description: entry.description || '',
+            amount: entry.amount || 0,
+            dueDate: entry.due_date || entry.created_at,
+            status: entry.status || 'pending',
+            entryType: entry.entry_type || (entry.amount > 0 ? 'RECEIVABLE' : 'PAYABLE'),
+            createdAt: entry.created_at,
+            // Manter campos originais
+            ...entry,
+            type: entry.type || entry.entry_type || (entry.amount > 0 ? 'income' : 'expense')
+          }));
+          res.json(financeData);
+        }
+      } else {
+        // Fallback para mock
+        const mockFinance = [
+          { id: 1, type: "income", amount: 1000.00, description: "Venda", created_at: new Date().toISOString() },
+          { id: 2, type: "expense", amount: 500.00, description: "Compra", created_at: new Date().toISOString() }
+        ];
+        res.json(mockFinance);
+      }
     } catch (error: any) {
       res.status(500).json({ message: error?.message || "Unknown error" });
     }
@@ -256,11 +291,46 @@ export const serverPromise = (async () => {
 
   app.get("/api/quotes", async (req: Request, res: Response) => {
     try {
-      const mockQuotes = [
-        { id: 1, customerName: "Cliente 1", total: 1500.00, status: "pending", createdAt: new Date().toISOString() },
-        { id: 2, customerName: "Cliente 2", total: 2500.00, status: "approved", createdAt: new Date().toISOString() }
-      ];
-      res.json(mockQuotes);
+      if (supabase) {
+        // Buscar orçamentos reais do Supabase
+        const { data, error } = await supabase
+          .from('quotes')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (error) {
+          console.error('Supabase quotes error:', error);
+          // Fallback para mock se der erro
+          const mockQuotes = [
+            { id: 1, customerName: "Cliente 1", total: 1500.00, status: "pending", created_at: new Date().toISOString() },
+            { id: 2, customerName: "Cliente 2", total: 2500.00, status: "approved", created_at: new Date().toISOString() }
+          ];
+          res.json(mockQuotes);
+        } else {
+          // Mapear para formato esperado pelo frontend
+          const quotesData = (data || []).map((quote: any) => ({
+            id: quote.id,
+            number: quote.number || quote.quote_number || `#${quote.id?.slice(0, 8)}`,
+            customerId: quote.customer_id || quote.customer_id,
+            customerName: quote.customer_name || '',
+            total: quote.total || quote.amount || 0,
+            validUntil: quote.valid_until || quote.valid_date,
+            status: quote.status || 'pending',
+            createdAt: quote.created_at,
+            // Manter campos originais
+            ...quote
+          }));
+          res.json(quotesData);
+        }
+      } else {
+        // Fallback para mock
+        const mockQuotes = [
+          { id: 1, customerName: "Cliente 1", total: 1500.00, status: "pending", created_at: new Date().toISOString() },
+          { id: 2, customerName: "Cliente 2", total: 2500.00, status: "approved", created_at: new Date().toISOString() }
+        ];
+        res.json(mockQuotes);
+      }
     } catch (error: any) {
       res.status(500).json({ message: error?.message || "Unknown error" });
     }
@@ -268,7 +338,36 @@ export const serverPromise = (async () => {
 
   app.get("/api/notifications", async (req: Request, res: Response) => {
     try {
-      res.json([]);
+      if (supabase) {
+        // Buscar notificações reais do Supabase
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20);
+        
+        if (error) {
+          console.error('Supabase notifications error:', error);
+          // Fallback para array vazio se der erro
+          res.json([]);
+        } else {
+          // Mapear para formato esperado pelo frontend
+          const notificationsData = (data || []).map((notification: any) => ({
+            id: notification.id,
+            title: notification.title || notification.message || '',
+            message: notification.message || notification.description || '',
+            type: notification.type || 'info',
+            read: notification.read || false,
+            createdAt: notification.created_at,
+            // Manter campos originais
+            ...notification
+          }));
+          res.json(notificationsData);
+        }
+      } else {
+        // Fallback para array vazio
+        res.json([]);
+      }
     } catch (error: any) {
       res.status(500).json({ message: error?.message || "Unknown error" });
     }
