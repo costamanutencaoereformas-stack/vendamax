@@ -179,7 +179,7 @@ export const serverPromise = (async () => {
 
   const server = createServer(app);
 
-    // Verificar conexão/consistência do DB usado por este processo
+  // Verificar conexão/consistência do DB usado por este processo
   await verifyDbConsistency();
 
   // Health check for platforms
@@ -213,11 +213,6 @@ export const serverPromise = (async () => {
   }
 
   return server;
-} catch (error) {
-  log('CRITICAL: Erro durante a inicialização do servidor!');
-  console.error(error);
-  throw error;
-}
 })();
 
 export default app;
