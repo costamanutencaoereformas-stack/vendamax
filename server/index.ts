@@ -207,7 +207,7 @@ export const serverPromise = (async () => {
           }).map((product: any) => ({
             ...product,
             price: product.price || product.sale_price || product.cost_price || 0,
-            stock: product.stock || product.quantity || product.inventory || 0
+            stock: product.current_stock || product.stock || product.quantity || product.inventory || 0
           }));
           
           res.json(activeProducts);
