@@ -17,7 +17,6 @@ if (!process.env.DATABASE_URL && !process.env.VERCEL) {
 
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
-import { setupVite, serveStatic, log } from "./vite";
 import { runMigrations, verifyDbConsistency, getProjectsTableDebug } from "./supabase";
 import { createServer, type Server } from "http";
 
@@ -61,7 +60,7 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      console.log(logLine);
     }
   });
 
@@ -72,9 +71,9 @@ export const serverPromise = (async () => {
   try {
     // Executar migrações do banco de dados
     await runMigrations();
-    log('Migrações do banco de dados concluídas com sucesso!');
+    console.log('Migrações do banco de dados concluídas com sucesso!');
   } catch (error) {
-    log('Erro ao executar migrações do banco de dados:');
+    console.log('Erro ao executar migrações do banco de dados:');
     console.error(error);
     // Continuar a execução mesmo se as migrações falharem
   }
@@ -207,9 +206,9 @@ export const serverPromise = (async () => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    // await setupVite(app, server); // Desabilitado para Vercel
   } else if (!process.env.VERCEL) {
-    serveStatic(app);
+    // serveStatic(app); // Desabilitado para Vercel
   }
 
   return server;
@@ -225,7 +224,7 @@ if (import.meta.url === `file://${process.argv[1]}` || process.env.NODE_ENV === 
       port,
       host: "0.0.0.0",
     }, () => {
-      log(`serving on port ${port}`);
+      console.log(`serving on port ${port}`);
     });
   });
 }
