@@ -682,10 +682,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customers
   app.get("/api/customers", async (req, res) => {
     try {
+      console.log('[DEBUG] /api/customers - Iniciando requisição');
+      console.log('[DEBUG] Environment:', process.env.NODE_ENV);
+      console.log('[DEBUG] Vercel:', !!process.env.VERCEL);
+      
       const customers = await storage.getCustomers();
+      console.log('[DEBUG] /api/customers - Retornando', customers?.length || 0, 'clientes');
       res.json(customers);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error('[ERROR] /api/customers - Erro:', error);
+      res.status(500).json({ 
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
 
@@ -1151,10 +1160,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Segments
   app.get("/api/segments", async (req, res) => {
     try {
+      console.log('[DEBUG] /api/segments - Iniciando requisição');
+      console.log('[DEBUG] Environment:', process.env.NODE_ENV);
+      console.log('[DEBUG] Vercel:', !!process.env.VERCEL);
+      
       const items = await storage.getSegments();
+      console.log('[DEBUG] /api/segments - Retornando', items?.length || 0, 'segmentos');
       res.json(items);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error('[ERROR] /api/segments - Erro:', error);
+      res.status(500).json({ 
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
 
@@ -1202,12 +1220,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Products
   app.get("/api/products", async (req, res) => {
     try {
+      console.log('[DEBUG] /api/products - Iniciando requisição');
+      console.log('[DEBUG] Environment:', process.env.NODE_ENV);
+      console.log('[DEBUG] Vercel:', !!process.env.VERCEL);
+      
       const items = await storage.getProducts();
       const supplierId = (req.query as any).supplierId as string | undefined;
       const filtered = supplierId ? items.filter(p => (p as any).supplierId === supplierId) : items;
+      
+      console.log('[DEBUG] /api/products - Retornando', filtered?.length || 0, 'produtos');
       res.json(filtered);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error('[ERROR] /api/products - Erro:', error);
+      res.status(500).json({ 
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
 

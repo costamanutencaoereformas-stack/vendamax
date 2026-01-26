@@ -73,5 +73,13 @@ export default defineConfig({
     hmr: {
       overlay: process.env.VITE_RUNTIME_OVERLAY === '0' ? false : true,
     },
+    // Proxy API requests to backend server
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });

@@ -18,6 +18,7 @@
     "seed:categories": "tsx ./scripts/seed-categories.mjs",
     "seed:all": "node ./scripts/seed-database.mjs",
     "test:conn": "node ./scripts/test-connection.mjs",
+    "test:supabase": "node ./scripts/test-supabase-connection.mjs",
     "test:db": "node ./scripts/test-database.mjs",
     "repair:sales": "node ./scripts/repair-duplicate-sale-items.mjs",
     "analyze:finance": "node ./scripts/analyze-cash-balance.mjs",

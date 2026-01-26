@@ -18,6 +18,7 @@ if (!process.env.DATABASE_URL && !process.env.VERCEL) {
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { createServer, type Server } from "http";
+import { registerRoutes } from "./routes";
 
 // Supabase integration
 import { createClient } from '@supabase/supabase-js';
@@ -44,12 +45,24 @@ app.use(express.urlencoded({ extended: false }));
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
 app.use(
   cors({
-    origin: (_origin, callback) => {
-      if (!allowedOrigins.length || !_origin) return callback(null, true);
-      const allowed = allowedOrigins.some((o) => _origin === o);
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      
+      // Allow all origins in development
+      if (process.env.NODE_ENV === 'development') return callback(null, true);
+      
+      // Allow Vercel frontend
+      if (origin.includes('vercel.app') || origin.includes('vercel.com')) return callback(null, true);
+      
+      // Check against allowed origins
+      if (!allowedOrigins.length) return callback(null, true);
+      const allowed = allowedOrigins.some((o) => origin === o);
       callback(allowed ? null : new Error("Not allowed by CORS"), allowed);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   })
 );
 
@@ -107,425 +120,43 @@ export const serverPromise = (async () => {
     }
   }
 
-  // API Routes
-  app.get("/api/health", async (req: Request, res: Response) => {
+  const server = await registerRoutes(app);
+
+  // Health check for platforms
+  app.get("/health", async (_req: Request, res: Response) => {
     try {
-      let databaseStatus = "mock";
-      let debug: any = null;
+      console.log('[DEBUG] /health - Verificando saúde do sistema');
       
-      if (supabase) {
-        try {
-          // Testar conexão com Supabase
-          const { data, error } = await supabase.from('customers').select('count').single();
-          if (error) {
-            databaseStatus = "error";
-            debug = { error: error.message };
-          } else {
-            databaseStatus = "connected";
-            debug = { data };
-          }
-        } catch (err: any) {
-          databaseStatus = "error";
-          debug = { error: err.message };
-        }
-      }
+      // Test database connection
+      const storage = await import('./storage').then(m => m.storage);
+      const testConnection = await storage.getCustomers().catch(() => null);
       
-      res.json({ 
-        status: "ok", 
+      const health = {
+        status: "ok",
         timestamp: new Date().toISOString(),
-        database: databaseStatus,
-        debug
-      });
+        environment: process.env.NODE_ENV,
+        isVercel: !!process.env.VERCEL,
+        database: testConnection ? "connected" : "error",
+        services: {
+          supabase: {
+            url: !!process.env.SUPABASE_URL,
+            key: !!process.env.SUPABASE_ANON_KEY,
+            database: !!process.env.DATABASE_URL
+          }
+        }
+      };
+      
+      console.log('[DEBUG] /health - Status:', health);
+      res.status(200).json(health);
     } catch (error: any) {
+      console.error('[ERROR] /health - Erro:', error);
       res.status(500).json({ 
         status: "error", 
-        message: error?.message || "Unknown error",
+        message: error.message,
         timestamp: new Date().toISOString()
       });
     }
   });
-
-  app.get("/api/customers", async (req: Request, res: Response) => {
-    try {
-      if (supabase) {
-        // Buscar dados reais do Supabase
-        const { data, error } = await supabase
-          .from('customers')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Supabase error:', error);
-          // Fallback para mock se der erro
-          const mockCustomers = [
-            { id: 1, name: "Cliente Exemplo 1", email: "cliente1@example.com", phone: "11999999999", created_at: new Date().toISOString() },
-            { id: 2, name: "Cliente Exemplo 2", email: "cliente2@example.com", phone: "11888888888", created_at: new Date().toISOString() }
-          ];
-          res.json(mockCustomers);
-        } else {
-          res.json(data || []);
-        }
-      } else {
-        // Fallback para mock
-        const mockCustomers = [
-          { id: 1, name: "Cliente Exemplo 1", email: "cliente1@example.com", phone: "11999999999", created_at: new Date().toISOString() },
-          { id: 2, name: "Cliente Exemplo 2", email: "cliente2@example.com", phone: "11888888888", created_at: new Date().toISOString() }
-        ];
-        res.json(mockCustomers);
-      }
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/products", async (req: Request, res: Response) => {
-    try {
-      if (supabase) {
-        // Buscar dados reais do Supabase
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Supabase error:', error);
-          // Fallback para mock se der erro
-          const mockProducts = [
-            { id: 1, name: "Produto Exemplo 1", price: 100.00, stock: 10, created_at: new Date().toISOString() },
-            { id: 2, name: "Produto Exemplo 2", price: 200.00, stock: 5, created_at: new Date().toISOString() }
-          ];
-          res.json(mockProducts);
-        } else {
-          // Log para debug da estrutura
-          console.log('Products data sample:', data?.[0]);
-          console.log('Products fields:', data?.[0] ? Object.keys(data[0]) : 'No data');
-          
-          // Filtrar apenas produtos ativos e garantir valores padrão
-          const activeProducts = (data || []).filter((product: any) => {
-            // Considerar ativo se não tiver campo is_active ou se for true
-            return !product.hasOwnProperty('is_active') || product.is_active === true;
-          }).map((product: any) => ({
-            id: product.id,
-            code: product.code || '',
-            name: product.name || '',
-            description: product.description || null,
-            imageUrl: product.image_url || null,
-            costPrice: product.cost_price?.toString() || '0',
-            salePrice: product.sale_price?.toString() || '0',
-            currentStock: product.current_stock || 0,
-            minimumStock: product.minimum_stock || 0,
-            maximumStock: product.maximum_stock || 0,
-            categoryId: product.category_id || null,
-            supplierId: product.supplier_id || null,
-            unit: product.unit || 'UN',
-            barcode: product.barcode || null,
-            isActive: product.is_active === true,
-            createdAt: product.created_at || null,
-            // Manter campos originais para compatibilidade
-            ...product,
-            price: product.price || product.sale_price || product.cost_price || 0,
-            stock: product.current_stock || product.stock || product.quantity || product.inventory || 0
-          }));
-          
-          res.json(activeProducts);
-        }
-      } else {
-        // Fallback para mock
-        const mockProducts = [
-          { id: 1, name: "Produto Exemplo 1", price: 100.00, stock: 10, created_at: new Date().toISOString() },
-          { id: 2, name: "Produto Exemplo 2", price: 200.00, stock: 5, created_at: new Date().toISOString() }
-        ];
-        res.json(mockProducts);
-      }
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/finance", async (req: Request, res: Response) => {
-    try {
-      if (supabase) {
-        // Buscar dados financeiros reais do Supabase
-        const { data, error } = await supabase
-          .from('financial_entries')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(50);
-        
-        if (error) {
-          console.error('Supabase finance error:', error);
-          // Fallback para mock se der erro
-          const mockFinance = [
-            { id: 1, type: "income", amount: 1000.00, description: "Venda", created_at: new Date().toISOString() },
-            { id: 2, type: "expense", amount: 500.00, description: "Compra", created_at: new Date().toISOString() }
-          ];
-          res.json(mockFinance);
-        } else {
-          // Mapear para formato esperado pelo frontend
-          const financeData = (data || []).map((entry: any) => ({
-            id: entry.id,
-            description: entry.description || '',
-            amount: entry.amount || 0,
-            dueDate: entry.due_date || entry.created_at,
-            status: entry.status || 'pending',
-            entryType: entry.entry_type || (entry.amount > 0 ? 'RECEIVABLE' : 'PAYABLE'),
-            createdAt: entry.created_at,
-            // Manter campos originais
-            ...entry,
-            type: entry.type || entry.entry_type || (entry.amount > 0 ? 'income' : 'expense')
-          }));
-          res.json(financeData);
-        }
-      } else {
-        // Fallback para mock
-        const mockFinance = [
-          { id: 1, type: "income", amount: 1000.00, description: "Venda", created_at: new Date().toISOString() },
-          { id: 2, type: "expense", amount: 500.00, description: "Compra", created_at: new Date().toISOString() }
-        ];
-        res.json(mockFinance);
-      }
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/quotes", async (req: Request, res: Response) => {
-    try {
-      if (supabase) {
-        // Buscar orçamentos reais do Supabase
-        const { data, error } = await supabase
-          .from('quotes')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(50);
-        
-        if (error) {
-          console.error('Supabase quotes error:', error);
-          // Fallback para mock se der erro
-          const mockQuotes = [
-            { id: 1, customerName: "Cliente 1", total: 1500.00, status: "pending", created_at: new Date().toISOString() },
-            { id: 2, customerName: "Cliente 2", total: 2500.00, status: "approved", created_at: new Date().toISOString() }
-          ];
-          res.json(mockQuotes);
-        } else {
-          // Mapear para formato esperado pelo frontend
-          const quotesData = (data || []).map((quote: any) => ({
-            id: quote.id,
-            number: quote.number || quote.quote_number || `#${quote.id?.slice(0, 8)}`,
-            customerId: quote.customer_id || quote.customer_id,
-            customerName: quote.customer_name || '',
-            total: quote.total || quote.amount || 0,
-            validUntil: quote.valid_until || quote.valid_date,
-            status: quote.status || 'pending',
-            createdAt: quote.created_at,
-            // Manter campos originais
-            ...quote
-          }));
-          res.json(quotesData);
-        }
-      } else {
-        // Fallback para mock
-        const mockQuotes = [
-          { id: 1, customerName: "Cliente 1", total: 1500.00, status: "pending", created_at: new Date().toISOString() },
-          { id: 2, customerName: "Cliente 2", total: 2500.00, status: "approved", created_at: new Date().toISOString() }
-        ];
-        res.json(mockQuotes);
-      }
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/notifications", async (req: Request, res: Response) => {
-    try {
-      if (supabase) {
-        // Buscar notificações reais do Supabase
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(20);
-        
-        if (error) {
-          console.error('Supabase notifications error:', error);
-          // Fallback para array vazio se der erro
-          res.json([]);
-        } else {
-          // Mapear para formato esperado pelo frontend
-          const notificationsData = (data || []).map((notification: any) => ({
-            id: notification.id,
-            title: notification.title || notification.message || '',
-            message: notification.message || notification.description || '',
-            type: notification.type || 'info',
-            read: notification.read || false,
-            createdAt: notification.created_at,
-            // Manter campos originais
-            ...notification
-          }));
-          res.json(notificationsData);
-        }
-      } else {
-        // Fallback para array vazio
-        res.json([]);
-      }
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  // APIs adicionais que o frontend está solicitando
-  app.get("/api/dashboard/metrics", async (req: Request, res: Response) => {
-    try {
-      // Métricas do dashboard
-      const metrics = {
-        totalCustomers: 0,
-        totalProducts: 0,
-        totalQuotes: 0,
-        totalRevenue: 0,
-        recentActivity: []
-      };
-      
-      if (supabase) {
-        // Buscar totais reais
-        const [customersCount, productsCount, quotesCount] = await Promise.all([
-          supabase.from('customers').select('id', { count: 'exact', head: true }),
-          supabase.from('products').select('id', { count: 'exact', head: true }),
-          supabase.from('quotes').select('id', { count: 'exact', head: true })
-        ]);
-        
-        metrics.totalCustomers = customersCount.count || 0;
-        metrics.totalProducts = productsCount.count || 0;
-        metrics.totalQuotes = quotesCount.count || 0;
-      }
-      
-      res.json(metrics);
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/sales", async (req: Request, res: Response) => {
-    try {
-      // Vendas - pode usar tabela sales ou retornar mock
-      const mockSales = [
-        { id: 1, customerName: "Cliente 1", total: 1500, status: "completed", createdAt: new Date().toISOString() },
-        { id: 2, customerName: "Cliente 2", total: 2500, status: "pending", createdAt: new Date().toISOString() }
-      ];
-      res.json(mockSales);
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/products/low-stock", async (req: Request, res: Response) => {
-    try {
-      if (supabase) {
-        // Buscar produtos com estoque baixo
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .lt('current_stock', 5)
-          .order('current_stock', { ascending: true })
-          .limit(10);
-        
-        if (error) {
-          console.error('Supabase low stock error:', error);
-          res.json([]);
-        } else {
-          res.json(data || []);
-        }
-      } else {
-        res.json([]);
-      }
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/company", async (req: Request, res: Response) => {
-    try {
-      // Dados da empresa - mock por enquanto
-      const company = {
-        id: 1,
-        name: "VendaMax",
-        email: "contato@vendamax.com",
-        phone: "(00) 00000-0000",
-        address: "Endereço da Empresa",
-        logo: null,
-        taxId: "00.000.000/0001-00"
-      };
-      res.json(company);
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/projects", async (req: Request, res: Response) => {
-    try {
-      // Projetos - mock por enquanto
-      const mockProjects = [
-        { id: 1, name: "Projeto 1", status: "active", customerName: "Cliente 1", createdAt: new Date().toISOString() },
-        { id: 2, name: "Projeto 2", status: "completed", customerName: "Cliente 2", createdAt: new Date().toISOString() }
-      ];
-      res.json(mockProjects);
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/cash-register/current", async (req: Request, res: Response) => {
-    try {
-      // Caixa aberto - mock por enquanto
-      const cashRegister = {
-        id: 1,
-        isOpen: true,
-        openedAt: new Date().toISOString(),
-        openedBy: "Usuário",
-        initialAmount: 1000,
-        currentAmount: 2500
-      };
-      res.json(cashRegister);
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/cash-register/summary", async (req: Request, res: Response) => {
-    try {
-      // Resumo do caixa - mock por enquanto
-      const summary = {
-        totalSales: 1500,
-        totalExpenses: 200,
-        netAmount: 1300,
-        paymentMethods: {
-          cash: 800,
-          card: 500,
-          transfer: 200
-        }
-      };
-      res.json(summary);
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  app.get("/api/contracts", async (req: Request, res: Response) => {
-    try {
-      // Contratos - mock por enquanto
-      const mockContracts = [
-        { id: 1, title: "Contrato 1", status: "active", customerName: "Cliente 1", value: 5000, createdAt: new Date().toISOString() },
-        { id: 2, title: "Contrato 2", status: "pending", customerName: "Cliente 2", value: 3000, createdAt: new Date().toISOString() }
-      ];
-      res.json(mockContracts);
-    } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Unknown error" });
-    }
-  });
-
-  const server = createServer(app);
-
-  // Health check for platforms
-  app.get("/health", (_req: Request, res: Response) => res.status(200).json({ status: "ok" }));
 
   // Serve uploaded files (logos, etc.)
   app.use('/uploads', express.static(resolve(process.cwd(), 'uploads')));
