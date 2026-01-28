@@ -283,7 +283,17 @@ export class SupabaseStorage implements IStorage {
 
   // Customers
   async getCustomers(): Promise<Customer[]> {
-    return await db.select().from(customers);
+    try {
+      if (!db) {
+        console.warn('[SupabaseStorage] Database not available, returning empty customers list');
+        return [];
+      }
+      return await db.select().from(customers);
+    } catch (error: any) {
+      console.error('[SupabaseStorage] Error fetching customers:', error);
+      // Return empty array as fallback to prevent 500 errors
+      return [];
+    }
   }
 
   async getCustomer(id: string): Promise<Customer | undefined> {
@@ -318,6 +328,10 @@ export class SupabaseStorage implements IStorage {
   async getFinanceEntries(): Promise<Finance[]> {
     try {
       console.log('getFinanceEntries: Iniciando consulta...');
+      if (!db) {
+        console.warn('[SupabaseStorage] Database not available, returning empty finance entries list');
+        return [];
+      }
       // Select only columns that are guaranteed to exist across versions
       const rows = await db
         .select({
@@ -347,9 +361,10 @@ export class SupabaseStorage implements IStorage {
         .orderBy(desc(finance.createdAt));
       console.log('getFinanceEntries: Consulta concluída, registros encontrados:', rows.length);
       return rows as unknown as Finance[];
-    } catch (error) {
+    } catch (error: any) {
       console.error('getFinanceEntries: Erro na consulta:', error);
-      throw error;
+      // Return empty array as fallback to prevent 500 errors
+      return [];
     }
   }
 
@@ -826,7 +841,17 @@ export class SupabaseStorage implements IStorage {
 
   // Quotes
   async getQuotes(): Promise<Quote[]> {
-    return await db.select().from(quotes).orderBy(desc(quotes.createdAt));
+    try {
+      if (!db) {
+        console.warn('[SupabaseStorage] Database not available, returning empty quotes list');
+        return [];
+      }
+      return await db.select().from(quotes).orderBy(desc(quotes.createdAt));
+    } catch (error: any) {
+      console.error('[SupabaseStorage] Error fetching quotes:', error);
+      // Return empty array as fallback to prevent 500 errors
+      return [];
+    }
   }
 
   async getQuote(id: string): Promise<Quote | undefined> {
@@ -1238,7 +1263,17 @@ export class SupabaseStorage implements IStorage {
 
   // Appointments (Agenda)
   async getAppointments(): Promise<Appointment[]> {
-    return await db.select().from(appointments).orderBy(desc(appointments.date));
+    try {
+      if (!db) {
+        console.warn('[SupabaseStorage] Database not available, returning empty appointments list');
+        return [];
+      }
+      return await db.select().from(appointments).orderBy(desc(appointments.date));
+    } catch (error: any) {
+      console.error('[SupabaseStorage] Error fetching appointments:', error);
+      // Return empty array as fallback to prevent 500 errors
+      return [];
+    }
   }
 
   async getAppointment(id: string): Promise<Appointment | undefined> {

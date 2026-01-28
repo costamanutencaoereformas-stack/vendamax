@@ -15,16 +15,12 @@ if (!process.env.DATABASE_URL && !process.env.VERCEL) {
   console.warn('Aviso: DATABASE_URL não encontrada e não estamos no Vercel. Verifique seu arquivo .env');
 }
 
-import express, { type Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-import { createServer, type Server } from "http";
 import { registerRoutes } from "./routes";
 
 // Supabase integration
 import { createClient } from '@supabase/supabase-js';
-
-// Carregar variáveis de ambiente
-dotenv.config();
 
 const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
 
@@ -48,13 +44,13 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
-      
+
       // Allow all origins in development
       if (process.env.NODE_ENV === 'development') return callback(null, true);
-      
+
       // Allow Vercel frontend
       if (origin.includes('vercel.app') || origin.includes('vercel.com')) return callback(null, true);
-      
+
       // Check against allowed origins
       if (!allowedOrigins.length) return callback(null, true);
       const allowed = allowedOrigins.some((o) => origin === o);
@@ -120,72 +116,71 @@ export const serverPromise = (async () => {
     }
   }
 
-  const server = await registerRoutes(app);
+  console.log('[DEBUG] serverPromise: Starting initialization...');
+  try {
+    const server = await registerRoutes(app);
+    console.log('[DEBUG] serverPromise: Routes registered successfully');
 
-  // Health check for platforms
-  app.get("/health", async (_req: Request, res: Response) => {
-    try {
-      console.log('[DEBUG] /health - Verificando saúde do sistema');
-      
-      // Test database connection
-      const storage = await import('./storage').then(m => m.storage);
-      const testConnection = await storage.getCustomers().catch(() => null);
-      
-      const health = {
-        status: "ok",
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV,
-        isVercel: !!process.env.VERCEL,
-        database: testConnection ? "connected" : "error",
-        services: {
-          supabase: {
-            url: !!process.env.SUPABASE_URL,
-            key: !!process.env.SUPABASE_ANON_KEY,
-            database: !!process.env.DATABASE_URL
+    // Health check for platforms
+    app.get("/api/health", async (_req: Request, res: Response) => {
+      try {
+        console.log('[DEBUG] /health - Verificando saúde do sistema');
+
+        // Test database connection
+        const storageModule = await import('./storage');
+        const storage = storageModule.storage;
+        const testConnection = await storage.getCustomers().catch(() => null);
+
+        const health = {
+          status: "ok",
+          timestamp: new Date().toISOString(),
+          environment: process.env.NODE_ENV,
+          isVercel: !!process.env.VERCEL,
+          database: testConnection ? "connected" : "error",
+          services: {
+            supabase: {
+              url: !!process.env.SUPABASE_URL,
+              key: !!process.env.SUPABASE_ANON_KEY,
+              database: !!process.env.DATABASE_URL
+            }
           }
-        }
-      };
-      
-      console.log('[DEBUG] /health - Status:', health);
-      res.status(200).json(health);
-    } catch (error: any) {
-      console.error('[ERROR] /health - Erro:', error);
-      res.status(500).json({ 
-        status: "error", 
-        message: error.message,
-        timestamp: new Date().toISOString()
-      });
-    }
-  });
+        };
 
-  // Serve uploaded files (logos, etc.)
-  app.use('/uploads', express.static(resolve(process.cwd(), 'uploads')));
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    // Always return JSON; don't throw after responding to avoid HTML error overlays
-    try {
-      if (!res.headersSent) {
-        res.status(status).json({ message });
+        console.log('[DEBUG] /health - Status:', health);
+        res.status(200).json(health);
+      } catch (error: any) {
+        console.error('[ERROR] /health - Erro:', error);
+        res.status(500).json({
+          status: "error",
+          message: error.message,
+          timestamp: new Date().toISOString()
+        });
       }
-    } catch (_) {
-      // ignore
-    }
-    console.error("API error:", err);
-  });
+    });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    // await setupVite(app, server); // Desabilitado para Vercel
-  } else if (!process.env.VERCEL) {
-    // serveStatic(app); // Desabilitado para Vercel
+    // Serve uploaded files (logos, etc.)
+    app.use('/uploads', express.static(resolve(process.cwd(), 'uploads')));
+
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+
+      // Always return JSON; don't throw after responding to avoid HTML error overlays
+      try {
+        if (!res.headersSent) {
+          res.status(status).json({ message });
+        }
+      } catch (_) {
+        // ignore
+      }
+      console.error("API error:", err);
+    });
+
+    return server;
+  } catch (error) {
+    console.error('[ERROR] serverPromise: Initialization failed!', error);
+    throw error;
   }
-
-  return server;
 })();
 
 export default app;

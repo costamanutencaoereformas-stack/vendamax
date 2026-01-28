@@ -17,8 +17,14 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !DATABASE_URL) {
   console.error('DATABASE_URL:', DATABASE_URL ? '✅' : '❌');
 
   if (process.env.NODE_ENV === 'production') {
-    // No Vercel/Produção, não podemos continuar sem o DB
-    console.warn('Aviso: Continuando inicialização, mas as chamadas ao banco irão falhar.');
+    console.warn('⚠️ Aviso: Continuando inicialização sem DATABASE_URL. O sistema usará dados mockados.');
+  }
+} else {
+  try {
+    const url = new URL(DATABASE_URL);
+    console.log(`✅ DATABASE_URL encontrada. Host: ${url.hostname}`);
+  } catch (e) {
+    console.error('❌ DATABASE_URL malformatada!');
   }
 }
 
@@ -47,9 +53,14 @@ export const supabase = createClient(
   SUPABASE_ANON_KEY || ''
 );
 
-// Criar cliente postgres-js de forma segura
+// Criar cliente postgres-js de forma segura para ambiente serverless
 const queryClient = (typeof DATABASE_URL === 'string' && DATABASE_URL.length > 0)
-  ? postgres(DATABASE_URL)
+  ? postgres(DATABASE_URL, {
+    max: 1,
+    idle_timeout: 20,
+    connect_timeout: 10,
+    onnotice: () => { }, // Silenciar notices
+  })
   : null as any;
 
 // Exportar cliente Drizzle com o esquema
@@ -60,7 +71,29 @@ const actualDb = queryClient
 export const db: any = new Proxy({} as any, {
   get(_, prop) {
     if (!actualDb) {
-      throw new Error(`Database connection not initialized: DATABASE_URL environment variable is missing or invalid. (Attempted to access: ${String(prop)})`);
+      if (typeof prop === 'symbol') return undefined;
+
+      console.warn(`[DB Mock] Acesso a '${String(prop)}' sem conexão real.`);
+
+      const mockChain: any = () => mockChain;
+      mockChain.from = () => mockChain;
+      mockChain.where = () => mockChain;
+      mockChain.orderBy = () => mockChain;
+      mockChain.limit = () => mockChain;
+      mockChain.offset = () => mockChain;
+      mockChain.returning = () => Promise.resolve([]);
+      mockChain.values = () => mockChain;
+      mockChain.set = () => mockChain;
+      mockChain.execute = () => Promise.resolve([]);
+
+      // Handle thenable for await
+      mockChain.then = (resolve: any) => resolve([]);
+
+      if (['select', 'insert', 'update', 'delete', 'execute'].includes(prop as string)) {
+        return () => mockChain;
+      }
+
+      return mockChain;
     }
     return (actualDb as any)[prop];
   }

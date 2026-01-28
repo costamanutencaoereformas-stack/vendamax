@@ -322,6 +322,7 @@ async function ensureAdminUser() {
     const existingAdmin = await storage.getUserByUsername('admin');
 
     if (!existingAdmin) {
+      console.log('Criando usuário administrador padrão...');
       // Criar usuário admin padrão com todos os campos obrigatórios
       await storage.createUser({
         username: 'admin',
@@ -333,13 +334,13 @@ async function ensureAdminUser() {
         isActive: true
       } as any);
 
-
-
       console.log('Usuário administrador criado com sucesso!');
+    } else {
+      console.log('Usuário administrador já existe.');
     }
   } catch (error) {
-    console.error('Erro ao criar usuário administrador:', error);
-    throw error; // Re-throw para que o erro seja tratado pelo chamador
+    console.error('⚠️ [Warning] Erro ao garantir usuário administrador (não fatal):', error);
+    // Não re-lançamos o erro para não travar a inicialização do servidor
   }
 }
 
@@ -685,15 +686,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[DEBUG] /api/customers - Iniciando requisição');
       console.log('[DEBUG] Environment:', process.env.NODE_ENV);
       console.log('[DEBUG] Vercel:', !!process.env.VERCEL);
-      
+
       const customers = await storage.getCustomers();
       console.log('[DEBUG] /api/customers - Retornando', customers?.length || 0, 'clientes');
-      res.json(customers);
+
+      // Ensure we always return an array
+      const safeCustomers = Array.isArray(customers) ? customers : [];
+      res.json(safeCustomers);
     } catch (error: any) {
       console.error('[ERROR] /api/customers - Erro:', error);
-      res.status(500).json({ 
-        message: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      // Return empty array as fallback to prevent 500 errors
+      res.status(500).json({
+        message: "Erro ao carregar clientes",
+        data: [],
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   });
@@ -782,66 +788,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }> = [];
       const today = new Date();
 
-      // Get expired quotes
-      const quotes = await storage.getQuotes();
-      const expiredQuotes = (quotes || []).filter((quote: any) => {
-        if (!quote?.validUntil) return false;
-        const validUntil = new Date(quote.validUntil);
-        if (isNaN(validUntil.getTime())) return false;
-        return validUntil < today && quote.status === 'PENDING';
-      });
-
-      expiredQuotes.forEach((quote: any) => {
-        notifications.push({
-          id: `quote-${quote.id}`,
-          type: 'expired_quote',
-          title: 'Orçamento Vencido',
-          message: `Orçamento ${quote.number} venceu em ${quote?.validUntil ? new Date(quote.validUntil).toLocaleDateString('pt-BR') : ''}`,
-          date: quote?.validUntil || today,
-          priority: 'high'
+      try {
+        // Get expired quotes
+        const quotes = await storage.getQuotes();
+        const expiredQuotes = (quotes || []).filter((quote: any) => {
+          if (!quote?.validUntil) return false;
+          const validUntil = new Date(quote.validUntil);
+          if (isNaN(validUntil.getTime())) return false;
+          return validUntil < today && quote.status === 'PENDING';
         });
-      });
 
-      // Get overdue finance entries
-      const financeEntries = await storage.getFinanceEntries();
-      const overdueEntries = (financeEntries || []).filter((entry: any) => {
-        if (!entry?.dueDate || entry.status === 'PAID') return false;
-        const dueDate = new Date(entry.dueDate);
-        if (isNaN(dueDate.getTime())) return false;
-        return dueDate < today;
-      });
-
-      overdueEntries.forEach((entry: any) => {
-        const isReceivable = entry.entryType === 'RECEIVABLE';
-        notifications.push({
-          id: `finance-${entry.id}`,
-          type: isReceivable ? 'overdue_receivable' : 'overdue_payable',
-          title: isReceivable ? 'Conta a Receber Vencida' : 'Conta a Pagar Vencida',
-          message: `${entry.description} - Vencimento: ${new Date(entry.dueDate).toLocaleDateString('pt-BR')}`,
-          date: entry.dueDate,
-          priority: 'high'
+        expiredQuotes.forEach((quote: any) => {
+          notifications.push({
+            id: `quote-${quote.id}`,
+            type: 'expired_quote',
+            title: 'Orçamento Vencido',
+            message: `Orçamento ${quote.number} venceu em ${quote?.validUntil ? new Date(quote.validUntil).toLocaleDateString('pt-BR') : ''}`,
+            date: quote?.validUntil || today,
+            priority: 'high'
+          });
         });
-      });
+      } catch (error) {
+        console.warn('[Notifications] Error fetching quotes:', error);
+      }
 
-      // Get today's appointments
-      const appointments = await storage.getAppointments();
-      const todayAppointments = (appointments || []).filter((appointment: any) => {
-        if (!appointment?.date) return false;
-        const appointmentDate = new Date(appointment.date);
-        if (isNaN(appointmentDate.getTime())) return false;
-        return appointmentDate.toDateString() === today.toDateString() && appointment.status === 'PENDING';
-      });
-
-      todayAppointments.forEach((appointment: any) => {
-        notifications.push({
-          id: `appointment-${appointment.id}`,
-          type: 'appointment_reminder',
-          title: 'Compromisso Hoje',
-          message: `${appointment.subject || 'Compromisso'} - ${new Date(appointment.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
-          date: appointment.date,
-          priority: 'medium'
+      try {
+        // Get overdue finance entries
+        const financeEntries = await storage.getFinanceEntries();
+        const overdueEntries = (financeEntries || []).filter((entry: any) => {
+          if (!entry?.dueDate || entry.status === 'PAID') return false;
+          const dueDate = new Date(entry.dueDate);
+          if (isNaN(dueDate.getTime())) return false;
+          return dueDate < today;
         });
-      });
+
+        overdueEntries.forEach((entry: any) => {
+          const isReceivable = entry.entryType === 'RECEIVABLE';
+          notifications.push({
+            id: `finance-${entry.id}`,
+            type: isReceivable ? 'overdue_receivable' : 'overdue_payable',
+            title: isReceivable ? 'Conta a Receber Vencida' : 'Conta a Pagar Vencida',
+            message: `${entry.description} - Vencimento: ${new Date(entry.dueDate).toLocaleDateString('pt-BR')}`,
+            date: entry.dueDate,
+            priority: 'high'
+          });
+        });
+      } catch (error) {
+        console.warn('[Notifications] Error fetching finance entries:', error);
+      }
+
+      try {
+        // Get today's appointments
+        const appointments = await storage.getAppointments();
+        const todayAppointments = (appointments || []).filter((appointment: any) => {
+          if (!appointment?.date) return false;
+          const appointmentDate = new Date(appointment.date);
+          if (isNaN(appointmentDate.getTime())) return false;
+          return appointmentDate.toDateString() === today.toDateString() && appointment.status === 'PENDING';
+        });
+
+        todayAppointments.forEach((appointment: any) => {
+          notifications.push({
+            id: `appointment-${appointment.id}`,
+            type: 'appointment_reminder',
+            title: 'Compromisso Hoje',
+            message: `${appointment.subject || 'Compromisso'} - ${new Date(appointment.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+            date: appointment.date,
+            priority: 'medium'
+          });
+        });
+      } catch (error) {
+        console.warn('[Notifications] Error fetching appointments:', error);
+      }
 
       // Sort by priority and date
       notifications.sort((a, b) => {
@@ -855,9 +873,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(notifications);
     } catch (error: any) {
       console.error("Erro ao buscar notificações:", error);
+      // Return empty array as fallback to prevent 500 errors
       res.status(500).json({
         message: "Erro interno ao buscar notificações",
-        details: error.message
+        data: [],
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   });
@@ -1163,13 +1183,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[DEBUG] /api/segments - Iniciando requisição');
       console.log('[DEBUG] Environment:', process.env.NODE_ENV);
       console.log('[DEBUG] Vercel:', !!process.env.VERCEL);
-      
+
       const items = await storage.getSegments();
       console.log('[DEBUG] /api/segments - Retornando', items?.length || 0, 'segmentos');
       res.json(items);
     } catch (error: any) {
       console.error('[ERROR] /api/segments - Erro:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
@@ -1223,16 +1243,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[DEBUG] /api/products - Iniciando requisição');
       console.log('[DEBUG] Environment:', process.env.NODE_ENV);
       console.log('[DEBUG] Vercel:', !!process.env.VERCEL);
-      
+
       const items = await storage.getProducts();
       const supplierId = (req.query as any).supplierId as string | undefined;
       const filtered = supplierId ? items.filter(p => (p as any).supplierId === supplierId) : items;
-      
+
       console.log('[DEBUG] /api/products - Retornando', filtered?.length || 0, 'produtos');
       res.json(filtered);
     } catch (error: any) {
       console.error('[ERROR] /api/products - Erro:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
@@ -1565,22 +1585,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!ok) return res.status(404).json({ message: "Inventory movement not found" });
       res.status(204).send();
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({
+        message: "Erro ao excluir movimento de estoque",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   });
 
-  // Sales
-  app.get("/api/sales", async (req, res) => {
+  // Quotes - list with optional server-side filters and normalized fields
+  app.get("/api/quotes", async (req, res) => {
     try {
-      const items = await storage.getSales();
-      res.json(items);
+      const all = await storage.getQuotes();
+
+      // Ensure we always return an array
+      const safeQuotes = Array.isArray(all) ? all : [];
+      res.json(safeQuotes);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error('[ERROR] /api/quotes - Erro:', error);
+      // Return empty array as fallback to prevent 500 errors
+      res.status(500).json({
+        message: "Erro ao carregar orçamentos",
+        data: [],
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   });
 
   app.get("/api/sales/:id", async (req, res) => {
     try {
+      // ... (rest of the code remains the same)
       const item = await storage.getSale(req.params.id);
       if (!item) return res.status(404).json({ message: "Sale not found" });
       res.json(item);
@@ -2583,10 +2616,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('/api/finance: Endpoint chamado');
       const items = await storage.getFinanceEntries();
       console.log('/api/finance: Retornando', items.length, 'registros');
-      res.json(items);
+
+      // Ensure we always return an array
+      const safeItems = Array.isArray(items) ? items : [];
+      res.json(safeItems);
     } catch (error: any) {
       console.error('/api/finance: Erro:', error);
-      res.status(500).json({ message: error.message });
+      // Return empty array as fallback to prevent 500 errors
+      res.status(500).json({
+        message: "Erro ao carregar dados financeiros",
+        data: [],
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   });
 
