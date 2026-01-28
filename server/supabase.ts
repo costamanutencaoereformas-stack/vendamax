@@ -59,9 +59,8 @@ const queryClient = (typeof DATABASE_URL === 'string' && DATABASE_URL.length > 0
     max: 1,
     idle_timeout: 20,
     connect_timeout: 10,
-    ssl: 'require', // Forçar SSL para Supabase
+    ssl: { rejectUnauthorized: false }, // Recomendado para Supabase no Vercel
     onnotice: () => { }, // Silenciar notices
-    keep_alive: true,
   })
   : null as any;
 

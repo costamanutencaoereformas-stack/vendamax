@@ -525,26 +525,38 @@ async function loadSampleData() {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Garantir que o usuário admin exista
-  await ensureAdminUser();
-  // Auto-migração leve: garantir coluna finance.code e índice
-  try {
-    await (storage as any).ensureFinanceCode?.();
-  } catch (e) {
-    console.warn('[startup] ensureFinanceCode non-fatal:', e as any);
-  }
-  // Auto-migração: criar tabelas auxiliares de produto, se necessário
-  try {
-    await (storage as any).ensureProductAuxTables?.();
-  } catch (e) {
-    console.warn('[startup] ensureProductAuxTables non-fatal:', e as any);
-  }
-  // Auto-migração: garantir colunas brand e ncm
-  try {
-    await (storage as any).ensureProductExtraColumns?.();
-  } catch (e) {
-    console.warn('[startup] ensureProductExtraColumns non-fatal:', e as any);
-  }
+  // Defer database initialization tasks to avoid blocking startup (critical for Vercel)
+  (async () => {
+    try {
+      console.log('[startup] Running background initialization tasks...');
+      // Garantir que o usuário admin exista
+      await ensureAdminUser();
+
+      // Auto-migração leve: garantir coluna finance.code e índice
+      if ((storage as any).ensureFinanceCode) {
+        await (storage as any).ensureFinanceCode().catch((e: any) =>
+          console.warn('[startup] ensureFinanceCode non-fatal:', e)
+        );
+      }
+
+      // Auto-migração: criar tabelas auxiliares de produto, se necessário
+      if ((storage as any).ensureProductAuxTables) {
+        await (storage as any).ensureProductAuxTables().catch((e: any) =>
+          console.warn('[startup] ensureProductAuxTables non-fatal:', e)
+        );
+      }
+
+      // Auto-migração: garantir colunas brand e ncm
+      if ((storage as any).ensureProductExtraColumns) {
+        await (storage as any).ensureProductExtraColumns().catch((e: any) =>
+          console.warn('[startup] ensureProductExtraColumns non-fatal:', e)
+        );
+      }
+      console.log('[startup] Background initialization tasks completed');
+    } catch (e) {
+      console.warn('[startup] Background initialization error (non-fatal):', e);
+    }
+  })();
 
   // Carregamento automático de dados de exemplo desabilitado
   // Caso necessário, execute o script manual de seed: `npm run seed:all`
