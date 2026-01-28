@@ -59,7 +59,9 @@ const queryClient = (typeof DATABASE_URL === 'string' && DATABASE_URL.length > 0
     max: 1,
     idle_timeout: 20,
     connect_timeout: 10,
+    ssl: 'require', // Forçar SSL para Supabase
     onnotice: () => { }, // Silenciar notices
+    keepAlive: true,
   })
   : null as any;
 
