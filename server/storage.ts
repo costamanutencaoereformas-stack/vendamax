@@ -1156,7 +1156,7 @@ export class MemStorage {
 }
 
 // Importar SupabaseStorage
-import { SupabaseStorage } from './supabase-storage';
+import { SupabaseStorage } from './supabase-storage.js';
 
 // Usar SupabaseStorage em vez de MemStorage
 export const storage = new SupabaseStorage();

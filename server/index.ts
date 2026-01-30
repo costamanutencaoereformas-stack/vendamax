@@ -17,7 +17,7 @@ if (!process.env.DATABASE_URL && !process.env.VERCEL) {
 
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes.js";
 
 // Supabase integration
 import { createClient } from '@supabase/supabase-js';
@@ -149,7 +149,7 @@ export const serverPromise = (async () => {
         console.log('[DEBUG] /health - Verificando saúde do sistema');
 
         // Test database connection
-        const storageModule = await import('./storage');
+        const storageModule = await import('./storage.js');
         const storage = storageModule.storage;
         const testConnection = await storage.getCustomers().catch(() => null);
 

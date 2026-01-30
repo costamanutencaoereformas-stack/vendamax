@@ -23,8 +23,8 @@ function parseDateSafe(input: any): Date | undefined {
 
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { getProjectsTableDebug } from "./supabase";
+import { storage } from "./storage.js";
+import { getProjectsTableDebug } from "./supabase.js";
 import {
   insertCustomerSchema,
   insertSupplierSchema,
@@ -56,7 +56,7 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
-import googleDrive from './google-drive';
+import googleDrive from './google-drive.js';
 
 declare global {
   namespace Express {

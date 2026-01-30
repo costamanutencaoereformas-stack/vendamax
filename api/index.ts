@@ -1,4 +1,4 @@
-import app, { serverPromise } from '../server/index';
+import app, { serverPromise } from '../server/index.js';
 
 export default async (req: any, res: any) => {
     console.log(`[Vercel] Request received: ${req.method} ${req.url}`);

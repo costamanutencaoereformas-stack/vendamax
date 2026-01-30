@@ -1,5 +1,5 @@
-import { IStorage } from './storage';
-import { db } from './supabase';
+import { IStorage } from './storage.js';
+import { db } from './supabase.js';
 import { eq, and, lte, gte, desc, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import {
