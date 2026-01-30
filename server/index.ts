@@ -149,7 +149,7 @@ export const serverPromise = (async () => {
         console.log('[DEBUG] /health - Verificando saúde do sistema');
 
         // Test database connection
-        const storageModule = await import('./storage.js');
+        const storageModule = await import('./storage');
         const storage = storageModule.storage;
         const testConnection = await storage.getCustomers().catch(() => null);
 

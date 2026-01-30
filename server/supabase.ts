@@ -64,8 +64,8 @@ const queryClient = (typeof DATABASE_URL === 'string' && DATABASE_URL.length > 0
     onconnect: () => {
       console.log('[DB] ✅ Conexão PostgreSQL estabelecida');
     },
-    onerror: (err) => {
-      console.error('[DB] ❌ Erro na conexão PostgreSQL:', err.message);
+    onerror: (err: any) => {
+      console.error('[DB] ❌ Erro na conexão PostgreSQL:', err?.message || String(err));
     }
   })
   : null as any;
