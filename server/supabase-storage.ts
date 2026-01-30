@@ -84,7 +84,7 @@ import {
 export class SupabaseStorage implements IStorage {
   // Auto-migration: ensure finance columns exist (code, project_id), backfill code, and index
   async ensureFinanceCode(): Promise<void> {
-    if (!db) return;
+    if (!db.connected) return;
     try {
       // 1) Add column if not exists
       await db.execute(sql`ALTER TABLE ${finance} ADD COLUMN IF NOT EXISTS code text`);
@@ -126,7 +126,7 @@ export class SupabaseStorage implements IStorage {
 
   // Auto-migration: ensure extra product columns (brand, ncm)
   async ensureProductExtraColumns(): Promise<void> {
-    if (!db) return;
+    if (!db.connected) return;
     try {
       await db.execute(sql`ALTER TABLE ${products} ADD COLUMN IF NOT EXISTS brand text`);
       await db.execute(sql`ALTER TABLE ${products} ADD COLUMN IF NOT EXISTS ncm text`);
@@ -137,7 +137,7 @@ export class SupabaseStorage implements IStorage {
 
   // Auto-migration: create product auxiliary tables if not exist
   async ensureProductAuxTables(): Promise<void> {
-    if (!db) return;
+    if (!db.connected) return;
     try {
       await db.execute(sql`CREATE TABLE IF NOT EXISTS product_price_history (
         id text PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -284,7 +284,7 @@ export class SupabaseStorage implements IStorage {
   // Customers
   async getCustomers(): Promise<Customer[]> {
     try {
-      if (!db) {
+      if (!db.connected) {
         console.warn('[SupabaseStorage] Database not available, returning empty customers list');
         return [];
       }
@@ -328,7 +328,7 @@ export class SupabaseStorage implements IStorage {
   async getFinanceEntries(): Promise<Finance[]> {
     try {
       console.log('getFinanceEntries: Iniciando consulta...');
-      if (!db) {
+      if (!db.connected) {
         console.warn('[SupabaseStorage] Database not available, returning empty finance entries list');
         return [];
       }

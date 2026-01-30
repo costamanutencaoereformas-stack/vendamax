@@ -61,6 +61,12 @@ const queryClient = (typeof DATABASE_URL === 'string' && DATABASE_URL.length > 0
     connect_timeout: 10,
     ssl: { rejectUnauthorized: false }, // Recomendado para Supabase no Vercel
     onnotice: () => { }, // Silenciar notices
+    onconnect: () => {
+      console.log('[DB] ✅ Conexão PostgreSQL estabelecida');
+    },
+    onerror: (err) => {
+      console.error('[DB] ❌ Erro na conexão PostgreSQL:', err.message);
+    }
   })
   : null as any;
 
@@ -71,6 +77,9 @@ const actualDb = queryClient
 
 export const db: any = new Proxy({} as any, {
   get(_, prop) {
+    // Permite verificar se a conexão é real sem disparar o mock log
+    if (prop === 'connected') return !!actualDb;
+
     if (!actualDb) {
       if (typeof prop === 'symbol') return undefined;
 

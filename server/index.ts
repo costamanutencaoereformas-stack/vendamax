@@ -78,11 +78,19 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        try {
+          // Use a safe stringify to avoid crashes on circular refs or BigInt
+          const safeJson = JSON.stringify(capturedJsonResponse, (_, value) =>
+            typeof value === 'bigint' ? value.toString() : value
+          );
+          logLine += ` :: ${safeJson}`;
+        } catch (e) {
+          logLine += ` :: [Serialization Error: ${e instanceof Error ? e.message : String(e)}]`;
+        }
       }
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      if (logLine.length > 150) { // Increased slightly for better debugging
+        logLine = logLine.slice(0, 149) + "…";
       }
 
       console.log(logLine);
@@ -90,6 +98,15 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+// Adicionar tratador global para evitar crashes fatais no Vercel
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[FATAL] Uncaught Exception:', error);
 });
 
 export const serverPromise = (async () => {
